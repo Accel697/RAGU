@@ -930,13 +930,13 @@ class Index:
                 all_clusters.extend(e.clusters)
 
             deduplicated_clusters: List[Dict[str, Any]] = []
-            seen_cluster_keys: Set[Tuple[int, str]] = set()
+            seen_cluster_keys: Set[Tuple[int, int]] = set()
             for cluster in all_clusters:
                 if not isinstance(cluster, dict):
                     continue
                 try:
                     level = int(cluster.get("level"))
-                    cluster_id = str(cluster.get("cluster_id"))
+                    cluster_id = int(cluster.get("cluster_id"))
                 except (TypeError, ValueError):
                     continue
 
