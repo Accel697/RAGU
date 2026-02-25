@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from pydantic import BaseModel
 
 from ragu.common.base import RaguGenerativeModule
 from ragu.common.prompts.default_models import GlobalSearchContextModel
-from ragu.llm.base_llm import BaseLLM
+from ragu.llm.llm import LLM
 from ragu.search_engine.types import NaiveSearchResult, LocalSearchResult
 from ragu.utils.ragu_utils import always_get_an_event_loop
 
@@ -17,14 +18,14 @@ class BaseEngine(RaguGenerativeModule, ABC):
     (a_query method) on top of a knowledge graph.
     """
 
-    def __init__(self, client: BaseLLM, *args, **kwargs):
+    def __init__(self, llm: LLM, *args: Any, **kwargs: Any):
         """
         Initialize engine with an LLM client.
 
         :param client: LLM client.
         """
         super().__init__(*args, **kwargs)
-        self.client = client
+        self.llm = llm
 
     @abstractmethod
     async def a_search(self, query, *args, **kwargs) -> NaiveSearchResult | LocalSearchResult | GlobalSearchContextModel:

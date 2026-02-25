@@ -41,7 +41,7 @@ async def main():
     )
 
     # Set up artifact extractor
-    artifact_extractor = ArtifactsExtractorLLM(client=client, do_validation=False)
+    artifact_extractor = ArtifactsExtractorLLM(llm=client, do_validation=False)
 
     # Set up embedder
     embedder = OpenAIEmbedder(
@@ -62,7 +62,7 @@ async def main():
 
     # Build knowledge graph
     knowledge_graph = KnowledgeGraph(
-        client=client,
+        llm=client,
         embedder=embedder,
         chunker=chunker,
         artifact_extractor=artifact_extractor,

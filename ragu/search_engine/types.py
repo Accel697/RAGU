@@ -1,7 +1,11 @@
 from dataclasses import dataclass, field
 from textwrap import dedent
+from typing import Any
 
 from jinja2 import Template
+
+from ragu.chunker.types import Chunk
+from ragu.graph.types import Entity, Relation
 
 
 @dataclass
@@ -10,11 +14,11 @@ class LocalSearchResult:
     Structured retrieval payload returned by local graph search.
     """
 
-    entities: list=field(default_factory=list)
-    relations: list=field(default_factory=list)
-    summaries: list=field(default_factory=list)
-    chunks: list=field(default_factory=list)
-    documents_id: list[str]=field(default_factory=list)
+    entities: list[Entity] = field(default_factory=list[Entity])
+    relations: list[Relation] = field(default_factory=list[Relation])
+    summaries: list[Any] = field(default_factory=list[Any])
+    chunks: list[Chunk] = field(default_factory=list[Chunk])
+    documents_id: list[str] = field(default_factory=list[str])
 
     _template: Template = Template(dedent(
         """
@@ -66,7 +70,7 @@ class GlobalSearchResult:
     Aggregated global-search insights with relevance ratings.
     """
 
-    insights: list=field(default_factory=list)
+    insights: list[Any] = field(default_factory=list[Any])
 
     _template: Template = Template(dedent(
         """
@@ -91,9 +95,9 @@ class NaiveSearchResult:
     Retrieval payload for vector-only (naive) search.
     """
 
-    chunks: list=field(default_factory=list)
-    scores: list=field(default_factory=list)
-    documents_id: list[str]=field(default_factory=list)
+    chunks: list[Chunk] = field(default_factory=list[Chunk])
+    scores: list[float] = field(default_factory=list[float])
+    documents_id: list[str] = field(default_factory=list[str])
 
     _template: Template = Template(dedent(
         """

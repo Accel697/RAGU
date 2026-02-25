@@ -27,7 +27,7 @@ class QueryPlanEngine(BaseEngine):
 
     def __init__(self, engine: BaseEngine, *args, **kwargs):
         _PROMPTS_NAMES = ["query_decomposition", "query_rewrite"]
-        super().__init__(client=engine.client, prompts=_PROMPTS_NAMES, *args, **kwargs)
+        super().__init__(llm=engine.llm, prompts=_PROMPTS_NAMES, *args, **kwargs)
         self.engine: BaseEngine = engine
 
     async def process_query(self, query: str) -> List[SubQuery]:
@@ -49,7 +49,7 @@ class QueryPlanEngine(BaseEngine):
         )
         rendered = rendered_list[0]
 
-        response: List[QueryPlan] = await self.engine.client.generate(    # type: ignore
+        response: List[QueryPlan] = await self.engine.llm.generate(    # type: ignore
             conversations=[rendered],
             response_model=instruction.pydantic_model,
         )
@@ -77,7 +77,7 @@ class QueryPlanEngine(BaseEngine):
         )
         rendered = rendered_list[0]
 
-        response: List[RewriteQuery | str] = await self.engine.client.generate(
+        response: List[RewriteQuery | str] = await self.engine.llm.generate(
             conversations=[rendered],
             response_model=instruction.pydantic_model,
         )

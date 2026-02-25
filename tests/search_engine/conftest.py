@@ -23,7 +23,7 @@ def real_kg():
     previous_storage = Settings.storage_folder
     Settings.storage_folder = "tests/kg_for_test"
     kg = KnowledgeGraph(
-        client=None,
+        llm=None,
         embedder=DummyEmbedder(dim=3072),
         builder_settings=BuilderArguments(use_llm_summarization=False),
     )

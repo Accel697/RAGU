@@ -29,7 +29,7 @@ async def test_naive_search_rerank_and_rerank_top_k(real_kg, kg_fixture_ids):
     client = SimpleNamespace(generate=AsyncMock())
 
     engine = NaiveSearchEngine(
-        client=client,
+        llm=client,
         knowledge_graph=real_kg,
         embedder=_make_embedder_mock(),
         reranker=reranker
@@ -47,7 +47,7 @@ async def test_naive_search_rerank_and_rerank_top_k(real_kg, kg_fixture_ids):
 async def test_naive_search_empty_returns_empty_result(real_kg):
     real_kg.index.chunk_vector_db.query = AsyncMock(return_value=[])
     engine = NaiveSearchEngine(
-        client=SimpleNamespace(generate=AsyncMock()),
+        llm=SimpleNamespace(generate=AsyncMock()),
         knowledge_graph=real_kg,
         embedder=_make_embedder_mock(),
     )
@@ -62,7 +62,7 @@ async def test_naive_search_empty_returns_empty_result(real_kg):
 async def test_naive_query_uses_llm_response(monkeypatch):
     client = SimpleNamespace(generate=AsyncMock(return_value=["naive-answer"]))
     kg = SimpleNamespace(index=SimpleNamespace(chunk_vector_db=SimpleNamespace(query=AsyncMock(return_value=[]))))
-    engine = NaiveSearchEngine(client=client, knowledge_graph=kg, embedder=_make_embedder_mock())
+    engine = NaiveSearchEngine(llm=client, knowledge_graph=kg, embedder=_make_embedder_mock())
     engine.truncation = lambda s: s
     engine.a_search = AsyncMock(return_value=NaiveSearchResult())
 

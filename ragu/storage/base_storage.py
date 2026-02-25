@@ -43,11 +43,11 @@ class BaseVectorStorage(BaseStorage, ABC):
     """
 
     @abstractmethod
-    async def query(self, vectors: Embedding, top_k: int) -> List[EmbeddingHit]:
+    async def query(self, vector: Embedding, top_k: int) -> List[EmbeddingHit]:
         """
         Retrieve top-k nearest items for a batch of embedding vectors.
 
-        :param vectors: Query embedding vector.
+        :param vector: Query embedding vector.
         :param top_k: Maximum number of results to return per query vector.
         :return: A list of query hits with distance score and metadata.
         """

@@ -6,7 +6,6 @@ from ragu.chunker.base_chunker import BaseChunker
 from ragu.chunker.types import Chunk
 from ragu.common.logger import logger
 from ragu.common.global_parameters import Settings
-from ragu.embedder.base_embedder import BaseEmbedder
 from ragu.graph.builder_modules import RemoveIsolatedNodes
 from ragu.graph.graph_builder_pipeline import (
     InMemoryGraphBuilder,
@@ -14,7 +13,8 @@ from ragu.graph.graph_builder_pipeline import (
     GraphBuilderModule
 )
 from ragu.graph.types import Entity, Relation, CommunitySummary
-from ragu.llm.base_llm import BaseLLM
+from ragu.llm.embedder import Embedder
+from ragu.llm.llm import LLM
 from ragu.storage.index import Index, StorageArguments
 from ragu.triplet.base_artifact_extractor import BaseArtifactExtractor
 from ragu.storage.base_storage import EdgeSpec
@@ -36,8 +36,8 @@ class KnowledgeGraph:
 
     def __init__(
         self,
-        client: Optional[BaseLLM],
-        embedder: Optional[BaseEmbedder],
+        llm: Optional[LLM],
+        embedder: Embedder,  # cannote be none, because is passed into Index
         chunker: Optional[BaseChunker] = None,
         artifact_extractor: Optional[BaseArtifactExtractor] = None,
         builder_settings: Optional[BuilderArguments] = None,
@@ -68,7 +68,7 @@ class KnowledgeGraph:
             additional_modules.append(RemoveIsolatedNodes())
 
         self.pipeline = InMemoryGraphBuilder(
-            client=client,
+            llm=llm,
             chunker=chunker,
             artifact_extractor=artifact_extractor,
             build_parameters=self.builder_settings,

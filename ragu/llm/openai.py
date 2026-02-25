@@ -5,23 +5,29 @@ from dataclasses import dataclass
 from contextlib import AbstractAsyncContextManager
 from pathlib import Path
 from typing import Any, TypeVar, cast
+import httpx
 from pydantic import BaseModel
 from typing_extensions import override
 
-from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionFunctionToolParam, ChatCompletionMessageParam
+from openai import AsyncOpenAI, omit
+from openai.types.chat import (
+    ChatCompletion,
+    ChatCompletionFunctionToolParam,
+    ChatCompletionMessageParam,
+    ParsedChatCompletion,
+)
 from tenacity import retry, stop_after_attempt, wait_chain, wait_fixed, before_sleep_log
 from aiolimiter import AsyncLimiter
 
-from ragu.llm.llm import LLM
-from ragu.utils.ragu_utils import FLOATS, LoguruAdapter, attach_async_contexts
+from ragu.llm.caching import ResponseCachingMixin
+from ragu.utils.ragu_utils import FLOATS, LoguruAdapter, acontexts
 from ragu.common.logger import logger
 
 
 T = TypeVar('T', BaseModel, str)
 
 @dataclass
-class CachedOpenAI(LLM):
+class CachedAsyncOpenAI(ResponseCachingMixin):
     """OpenAI client able to respond with structured outputs and
     embeddings, with response caching, rate limiting and request retrying.
 
@@ -76,17 +82,14 @@ class CachedOpenAI(LLM):
         cache: MutableMapping[str, Any] | str | Path | None = None,
         cache_prefix: str = 'openai',
     ):
-        super().__init__(cache=cache, cache_prefix=cache_prefix)
+        ResponseCachingMixin.__init__(self, cache=cache, cache_prefix=cache_prefix)
 
         self.client = client or AsyncOpenAI(
             base_url=base_url,
             api_key=api_key,
         )
 
-        # Should add retrying after attaching limiters, so that
-        # every retry increments counter in the limiters.
-
-        # Thus, handlers/wrappers will be called in this order:
+        # Handlers/wrappers will be called in this order:
         # 1. Caching
         # 2. Retrying
         # 3. Rate limiting
@@ -100,12 +103,9 @@ class CachedOpenAI(LLM):
         if rate_min_delay:
             contexts.append(AsyncLimiter(1, time_period=rate_min_delay))
         if contexts:
-            self._chat_completion = attach_async_contexts(
-                self._chat_completion, *contexts
-            )
-            self._embed_text = attach_async_contexts(
-                self._embed_text, *contexts
-            )
+            self._uncached_chat_completion = acontexts(self._uncached_chat_completion, *contexts)
+            self._uncached_embed_text = acontexts(self._uncached_embed_text, *contexts)
+            self._uncached_score = acontexts(self._uncached_score, *contexts)
 
         # add retrying decorators
         if retry_times_sec:
@@ -117,11 +117,52 @@ class CachedOpenAI(LLM):
                 ),
                 reraise=True
             )
-            self._chat_completion = retrying_decorator(self._chat_completion)
-            self._embed_text = retrying_decorator(self._embed_text)
+            self._uncached_chat_completion = retrying_decorator(self._uncached_chat_completion)
+            self._uncached_embed_text = retrying_decorator(self._uncached_embed_text)
+            self._uncached_score = retrying_decorator(self._uncached_score)
+    
+    async def chat_completion(
+        self,
+        model_name: str,
+        conversation: list[ChatCompletionMessageParam],
+        output_schema: type[T] = str,
+        **kwargs: Any,
+    ) -> T:
+        return await self._cached_chat_completion(
+            model_name=model_name,
+            conversation=conversation,
+            output_schema=output_schema,
+            **kwargs
+        )
+    
+    async def embed_text(  # with caching
+        self,
+        model_name: str,
+        text: str,
+        **kwargs: Any,
+    ) -> list[float] | FLOATS:
+            return await self._cached_embed_text(
+                model_name=model_name,
+                text=text,
+                **kwargs,
+            )
+    
+    async def score(
+        self,
+        model_name: str,
+        text_1: str,
+        text_2: list[str],
+        **kwargs: Any,
+    ) -> list[tuple[int, float]]:
+        return await self._cached_score(
+            model_name=model_name,
+            text_1=text_1,
+            text_2=text_2,
+            **kwargs,
+        )
 
     @override
-    async def _chat_completion(
+    async def _uncached_chat_completion(
         self,
         model_name: str,
         conversation: list[ChatCompletionMessageParam],
@@ -129,23 +170,33 @@ class CachedOpenAI(LLM):
         as_tool: bool = False,
         **kwargs: Any,
     ) -> T:
+        recognized_kwargs = {
+            k: kwargs.pop(k, omit)
+            for k in ['temperature', 'top_p']
+        }
+        assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
         logger.debug(f'Sending chat_completion API request...')
         if issubclass(output_schema, str):
-            response = await self.client.chat.completions.create(
+            response = cast(ChatCompletion, await self.client.chat.completions.create(
                 model=model_name,
                 messages=conversation,
-            )
+                **recognized_kwargs,
+            ))
             content = response.choices[0].message.content
             return cast(T, content if content is not None else '')
 
         model_schema = output_schema
         
         if not as_tool:
-            # use response_format
-            parsed_completion = await self.client.beta.chat.completions.parse(
-                model=model_name,
-                messages=conversation,
-                response_format=model_schema, 
+            # use response_format param
+            parsed_completion = cast(
+                ParsedChatCompletion[BaseModel],
+                await self.client.beta.chat.completions.parse(
+                    model=model_name,
+                    messages=conversation,
+                    response_format=model_schema,
+                    **recognized_kwargs,
+                )
             )
             
             parsed_result = parsed_completion.choices[0].message.parsed
@@ -166,12 +217,13 @@ class CachedOpenAI(LLM):
                 },
             }
 
-            response = await self.client.chat.completions.create(
+            response = cast(ChatCompletion, await self.client.chat.completions.create(
                 model=model_name,
                 messages=conversation,
                 tools=[tool_definition],
                 tool_choice={"type": "function", "function": {"name": function_name}},
-            )
+                **recognized_kwargs,
+            ))
 
             message = response.choices[0].message
             
@@ -183,14 +235,50 @@ class CachedOpenAI(LLM):
             return cast(T, model_schema.model_validate_json(arguments_json))
 
     @override
-    async def _embed_text(
+    async def _uncached_embed_text(
         self,
         model_name: str,
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
+        assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
         logger.debug(f'Sending embed_text API request...')
         response = await self.client.embeddings.create(
             model=model_name, input=text,
         )
         return response.data[0].embedding
+
+    @override
+    async def _uncached_score(
+        self,
+        model_name: str,
+        text_1: str,
+        text_2: list[str],
+        **kwargs: Any,
+    ) -> list[tuple[int, float]]:
+        assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
+        logger.debug(f'Sending score API request...')
+        
+        headers = {"Content-Type": "application/json"}
+        if self.client.api_key:
+            headers["Authorization"] = f"Bearer {self.client.api_key}"
+
+        payload: dict[str, Any] = {
+            "model": model_name,
+            "text_1": text_1,
+            "text_2": text_2,
+        }
+
+        http_client = httpx.AsyncClient(timeout=60)  # TODO move to args
+        response = await http_client.post(
+            f"{self.client.base_url!s}/score",
+            headers=headers,
+            json=payload,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        results = [(int(item["index"]), float(item["score"])) for item in data["data"]]
+        results.sort(key=lambda x: x[1], reverse=True)
+
+        return results

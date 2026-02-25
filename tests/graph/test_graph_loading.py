@@ -89,7 +89,7 @@ class TestGraphLoading:
         """
         # Load graph (should load from storage, not build)
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -102,7 +102,7 @@ class TestGraphLoading:
         Verify that loaded graph contains entities.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -120,7 +120,7 @@ class TestGraphLoading:
         Verify that loaded graph contains relations.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -136,7 +136,7 @@ class TestGraphLoading:
         Verify that entity vector database is loaded.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -152,7 +152,7 @@ class TestGraphLoading:
         Verify that chunks are loaded from KV storage.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 

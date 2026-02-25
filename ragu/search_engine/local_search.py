@@ -1,12 +1,12 @@
 # Partially based on https://github.com/gusye1234/nano-graphrag/blob/main/nano_graphrag/
-from typing import List
+from typing import Any, List
 
 from pydantic import BaseModel
 
 from ragu.common.global_parameters import Settings
-from ragu.embedder.base_embedder import BaseEmbedder
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm.base_llm import BaseLLM
+from ragu.llm.embedder import Embedder
+from ragu.llm.llm import LLM
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.search_functional import (
     _find_most_related_edges_from_entities,
@@ -38,20 +38,20 @@ class LocalSearchEngine(BaseEngine):
 
     def __init__(
         self,
-        client: BaseLLM,
+        llm: LLM,
         knowledge_graph: KnowledgeGraph,
-        embedder: BaseEmbedder,
+        embedder: Embedder,
         max_context_length: int = 30_000,
         tokenizer_backend: str = "tiktoken",
         tokenizer_model: str = "gpt-4",
         language: str | None = None,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ):
         """
         Initialize a `LocalSearchEngine`.
 
-        :param client: LLM client used to generate the final answer.
+        :param llm: LLM used to generate the final answer.
         :param knowledge_graph: Knowledge graph used for entity and relation retrieval.
         :param embedder: Embedding model used for similarity search.
         :param max_context_length: Max tokens allowed for the final context (after truncation).
@@ -60,7 +60,7 @@ class LocalSearchEngine(BaseEngine):
         :param language: Default output language (fed into prompt template).
         """
         _PROMPTS_NAMES = ["local_search"]
-        super().__init__(client=client, prompts=_PROMPTS_NAMES, *args, **kwargs)
+        super().__init__(llm=llm, prompts=_PROMPTS_NAMES, *args, **kwargs)
 
         self.truncation = TokenTruncation(
             tokenizer_model,
@@ -80,7 +80,7 @@ class LocalSearchEngine(BaseEngine):
         :param top_k: Number of top entities to retrieve from the entity vector DB.
         :return: LocalSearchResult containing entities, relations, summaries, chunks, and document ids.
         """
-        embedding = await self.embedder.embed_single(query)
+        embedding = await self.embedder.embed_text(query)
         embedding_hits = await self.knowledge_graph.index.entity_vector_db.query(
             Embedding(embedding),
             top_k=top_k,
@@ -125,9 +125,7 @@ class LocalSearchEngine(BaseEngine):
             language=self.language,
         )
         rendered: ChatMessages = rendered_conversations[0]
-        result = await self.client.generate(
-            conversations=[rendered],
-            response_model=instruction.pydantic_model,
-        )
-
-        return result[0]
+        return await self.llm.chat_completion(
+            conversation=rendered.to_openai(),
+            output_schema=instruction.pydantic_model or str, # type: ignore
+        ) # type: ignore
