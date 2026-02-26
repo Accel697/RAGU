@@ -8,7 +8,7 @@ from collections.abc import Generator
 from pydantic import BaseModel
 
 from ragu.common.logger import logger
-from ragu.llm.openai import CachedAsyncOpenAI
+from ragu.models.openai import CachedAsyncOpenAI
 from ragu.utils.testing.openai_mock_server import OpenAIMockServer
 
 logger.remove()

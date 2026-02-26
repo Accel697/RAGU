@@ -12,8 +12,8 @@ from ragu.common.logger import logger
 from ragu.graph.artifacts_summarizer import EntitySummarizer, RelationSummarizer
 from ragu.graph.community_summarizer import CommunitySummarizer
 from ragu.graph.types import CommunitySummary, Community, Entity, Relation
-from ragu.llm.embedder import Embedder
-from ragu.llm.llm import LLM
+from ragu.models.embedder import Embedder
+from ragu.models.llm import LLM
 from ragu.triplet.base_artifact_extractor import BaseArtifactExtractor
 
 

@@ -14,8 +14,8 @@ from ragu.graph.types import Entity, Relation
 
 from ragu.common.prompts.prompt_storage import RAGUInstruction
 from ragu.common.prompts.messages import ChatMessages, render
-from ragu.llm.embedder import Embedder
-from ragu.llm.llm import LLM
+from ragu.models.embedder import Embedder
+from ragu.models.llm import LLM
 
 
 class EntitySummarizer(RaguGenerativeModule):

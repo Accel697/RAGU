@@ -11,7 +11,7 @@ from openai import AsyncOpenAI
 import pytest
 
 import ragu.embedder.openai_embedder as openai_module
-from ragu.llm.local_embedders import STEmbedder
+from ragu.models.local_embedders import STEmbedder
 from ragu.embedder.openai_embedder import OpenAIEmbedder
 
 

@@ -13,7 +13,7 @@ import pytest
 from ragu.common.global_parameters import Settings
 from ragu.embedder import OpenAIEmbedder
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm import OpenAIClient
+from ragu.models import OpenAIClient
 
 
 class TestGraphLoading:

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from ragu.common.base import RaguGenerativeModule
 from ragu.common.global_parameters import Settings
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm.llm import LLM
+from ragu.models.llm import LLM
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.types import GlobalSearchResult
 from ragu.utils.token_truncation import TokenTruncation

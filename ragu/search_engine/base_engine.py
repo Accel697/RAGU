@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from ragu.common.base import RaguGenerativeModule
 from ragu.common.prompts.default_models import GlobalSearchContextModel
-from ragu.llm.llm import LLM
+from ragu.models.llm import LLM
 from ragu.search_engine.types import NaiveSearchResult, LocalSearchResult
 from ragu.utils.ragu_utils import always_get_an_event_loop
 

@@ -71,9 +71,9 @@ from ragu import (
     Settings,
     ArtifactsExtractorLLM,
 )
-from ragu.llm.embedder import EmbedderOpenAI
-from ragu.llm.llm import LLMOpenAI
-from ragu.llm.openai import CachedAsyncOpenAI
+from ragu.models.embedder import EmbedderOpenAI
+from ragu.models.llm import LLMOpenAI
+from ragu.models.openai import CachedAsyncOpenAI
 from ragu.utils.ragu_utils import read_text_from_files
 
 client = CachedAsyncOpenAI(

@@ -19,7 +19,7 @@ from openai.types.chat import (
 from tenacity import retry, stop_after_attempt, wait_chain, wait_fixed, before_sleep_log
 from aiolimiter import AsyncLimiter
 
-from ragu.llm.caching import ResponseCachingMixin
+from ragu.models.caching import ResponseCachingMixin
 from ragu.utils.ragu_utils import FLOATS, LoguruAdapter, attach_async_contexts, get_disk_cache, save_args_on_exception
 from ragu.common.logger import logger
 

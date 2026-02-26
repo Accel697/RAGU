@@ -9,7 +9,7 @@ from ragu import (
     SimpleChunker,
 )
 from ragu.embedder import OpenAIEmbedder
-from ragu.llm import OpenAIClient
+from ragu.models import OpenAIClient
 from ragu.utils.ragu_utils import read_text_from_files
 
 

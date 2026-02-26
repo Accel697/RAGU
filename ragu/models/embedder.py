@@ -6,7 +6,7 @@ from typing_extensions import override
 from pydantic import BaseModel
 
 from ragu.common.logger import logger
-from ragu.llm.openai import CachedAsyncOpenAI
+from ragu.models.openai import CachedAsyncOpenAI
 from ragu.utils.ragu_utils import FLOATS
 
 

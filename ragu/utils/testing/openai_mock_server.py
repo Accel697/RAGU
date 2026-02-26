@@ -319,7 +319,7 @@ class OpenAIMockServer(http.server.ThreadingHTTPServer):
 if __name__ == '__main__':
     import asyncio
     from pydantic import BaseModel
-    from ragu.llm.openai import CachedAsyncOpenAI
+    from ragu.models.openai import CachedAsyncOpenAI
 
     class Answer(BaseModel):
         reasoning: str

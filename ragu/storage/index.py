@@ -27,7 +27,7 @@ from ragu.graph.types import (
     Community,
     CommunitySummary
 )
-from ragu.llm.embedder import Embedder
+from ragu.models.embedder import Embedder
 from ragu.storage.base_storage import (
     BaseKVStorage,
     BaseVectorStorage,

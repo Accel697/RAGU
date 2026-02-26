@@ -8,7 +8,7 @@ from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
 
 from ragu.common.logger import logger
-from ragu.llm.openai import CachedAsyncOpenAI
+from ragu.models.openai import CachedAsyncOpenAI
 
 
 T = TypeVar('T', BaseModel, str)

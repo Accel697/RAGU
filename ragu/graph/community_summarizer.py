@@ -8,7 +8,7 @@ from ragu.common.prompts.default_models import CommunityReportModel
 from ragu.common.prompts.prompt_storage import RAGUInstruction
 from ragu.common.prompts.messages import ChatMessages, render
 from ragu.graph.types import Community, CommunitySummary
-from ragu.llm.llm import LLM
+from ragu.models.llm import LLM
 
 
 class CommunitySummarizer(RaguGenerativeModule):

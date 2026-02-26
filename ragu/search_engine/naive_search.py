@@ -5,9 +5,9 @@ from pydantic import BaseModel
 from ragu.chunker.types import Chunk
 from ragu.common.global_parameters import Settings
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm.embedder import Embedder
-from ragu.llm.llm import LLM
-from ragu.llm.scorer import Scorer
+from ragu.models.embedder import Embedder
+from ragu.models.llm import LLM
+from ragu.models.scorer import Scorer
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.types import NaiveSearchResult
 from ragu.storage import Embedding

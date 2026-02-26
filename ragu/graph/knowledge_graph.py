@@ -13,8 +13,8 @@ from ragu.graph.graph_builder_pipeline import (
     GraphBuilderModule
 )
 from ragu.graph.types import Entity, Relation, CommunitySummary
-from ragu.llm.embedder import Embedder
-from ragu.llm.llm import LLM
+from ragu.models.embedder import Embedder
+from ragu.models.llm import LLM
 from ragu.storage.index import Index, StorageArguments
 from ragu.triplet.base_artifact_extractor import BaseArtifactExtractor
 from ragu.storage.base_storage import EdgeSpec

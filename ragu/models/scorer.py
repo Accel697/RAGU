@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 from ragu.common.logger import logger
 from ragu.common.batch_generator import BatchGenerator
-from ragu.llm.openai import CachedAsyncOpenAI
+from ragu.models.openai import CachedAsyncOpenAI
 
 
 T = TypeVar('T', BaseModel, str)

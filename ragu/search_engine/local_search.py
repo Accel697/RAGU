@@ -5,8 +5,8 @@ from pydantic import BaseModel
 
 from ragu.common.global_parameters import Settings
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm.embedder import Embedder
-from ragu.llm.llm import LLM
+from ragu.models.embedder import Embedder
+from ragu.models.llm import LLM
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.search_functional import (
     _find_most_related_edges_from_entities,

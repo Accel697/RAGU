@@ -10,7 +10,7 @@ from ragu.common.logger import logger
 from ragu.common.prompts.messages import ChatMessages, render
 from ragu.common.prompts.prompt_storage import RAGUInstruction
 from ragu.graph.types import Entity, Relation
-from ragu.llm.llm import LLM
+from ragu.models.llm import LLM
 from ragu.triplet.base_artifact_extractor import BaseArtifactExtractor
 
 
