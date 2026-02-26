@@ -23,7 +23,10 @@ class LLM(ABC):
         conversation: list[ChatCompletionMessageParam],
         output_schema: type[T] = str,
         **kwargs: Any,
-    ) -> T: ...
+    ) -> T:
+        """Returns LLM response, in form or string or BaseModel. Subclasses
+        may add more kwargs, such as temperature.
+        """
 
     async def batch_chat_completion(
         self,
@@ -32,6 +35,7 @@ class LLM(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> Sequence[T]:
+        """Parallel async processing of multiple chat_completion calls."""
         logger.debug(f'Calling batch_chat_completion with size {len(conversations)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.chat_completion(

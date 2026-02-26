@@ -17,14 +17,17 @@ class Embedder(ABC):
     """Embedder interface to support various backends (openai, transformers etc.)."""
 
     @property
-    def dim(self) -> int: ...
+    @abstractmethod
+    def dim(self) -> int:
+        """Embedding dimension"""
 
     @abstractmethod
     async def embed_text(
         self,
         text: str,
         **kwargs: Any,
-    ) -> list[float] | FLOATS: ...
+    ) -> list[float] | FLOATS:
+        """Calculates embedding for the text. Subclasses may add kwargs."""
 
     async def batch_embed_text(
         self,
@@ -32,6 +35,7 @@ class Embedder(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> list[list[float]] | FLOATS:
+        """Parallel async processing of multiple embed_text calls."""
         logger.debug(f'Calling batch_embed_text with size {len(texts)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.embed_text(

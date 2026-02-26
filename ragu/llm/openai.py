@@ -151,10 +151,6 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
             self._uncached_chat_completion = retrying_decorator(self._uncached_chat_completion)
             self._uncached_embed_text = retrying_decorator(self._uncached_embed_text)
             self._uncached_score = retrying_decorator(self._uncached_score)
-
-    ######################
-    ### Public methods
-    ######################
     
     async def chat_completion(
         self,
@@ -163,6 +159,7 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         output_schema: type[T] = str,
         **kwargs: Any,
     ) -> T:
+        """Returns LLM response, in form or string or BaseModel."""
         return await self._cached_chat_completion(
             model_name=model_name,
             conversation=conversation,
@@ -176,6 +173,7 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
+            """Calculates embedding for the text."""
             return await self._cached_embed_text(
                 model_name=model_name,
                 text=text,
@@ -189,16 +187,15 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        """Scores text similarity with a list of other texts. Returns tuples
+        of (index, score) sorted by score in descending order.
+        """
         return await self._cached_score(
             model_name=model_name,
             text_1=text_1,
             text_2=text_2,
             **kwargs,
         )
-
-    ######################
-    ### Implementations
-    ######################
 
     @override
     async def _uncached_chat_completion(
@@ -209,6 +206,7 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         as_tool: bool = False,
         **kwargs: Any,
     ) -> T:
+        """Internal function to be decorated with rate limiting and retrying."""
         logger.debug(f'Sending chat_completion API request with schema {output_schema.__name__}...')
         recognized_kwargs = {
             k: kwargs.pop(k, omit)
@@ -280,6 +278,7 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
+        """Internal function to be decorated with rate limiting and retrying."""
         debug_text = text[:20].replace("\n", "\\n")
         logger.debug(f'Sending embed_text API request with text {debug_text}...')
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
@@ -296,6 +295,7 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        """Internal function to be decorated with rate limiting and retrying."""
         debug_text = text_1[:20].replace("\n", "\\n")
         logger.debug(f'Sending embed_text API request with text {debug_text}...')
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'

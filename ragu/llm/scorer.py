@@ -24,7 +24,11 @@ class Scorer(ABC):
         text_1: str,
         text_2: list[str],
         **kwargs: Any,
-    ) -> list[tuple[int, float]]: ...
+    ) -> list[tuple[int, float]]:
+        """Scores text similarity with a list of other texts. Returns tuples
+        of (index, score) sorted by score in descending order.
+        
+        Subclasses may add more kwargs."""
 
     async def batch_score(
         self,
@@ -32,6 +36,7 @@ class Scorer(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> list[list[tuple[int, float]]]:
+        """Parallel async processing of multiple score calls."""
         logger.debug(f'Calling batch_score with size {len(texts)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.score(

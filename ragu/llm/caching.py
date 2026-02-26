@@ -1,5 +1,4 @@
 import json
-from abc import abstractmethod
 from collections.abc import MutableMapping
 from pathlib import Path
 from typing import Any, TypeVar, cast
@@ -58,6 +57,7 @@ class ResponseCachingMixin:
         output_schema: type[T] = str,
         **kwargs: Any,
     ) -> T:
+        """Caching wrapper for _uncached_chat_completion"""
         is_str = issubclass(output_schema, str)
         args: dict[str, Any] = {
             'cache_prefix': self.cache_prefix,
@@ -100,7 +100,10 @@ class ResponseCachingMixin:
         output_schema: type[T] = str,
         **kwargs: Any,
     ) -> T:
-        # kwargs are here to add custom arguments that will also be cached
+        """Abstract method to cache.
+
+        kwargs are here to add custom arguments that will also be cached
+        """
         raise NotImplemented
 
     async def _cached_embed_text(
@@ -109,6 +112,7 @@ class ResponseCachingMixin:
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
+        """Caching wrapper for _uncached_embed_text"""
         args: dict[str, Any] = {
             'cache_prefix': self.cache_prefix,
             'model_name': model_name,
@@ -144,6 +148,10 @@ class ResponseCachingMixin:
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
+        """Abstract method to cache.
+
+        kwargs are here to add custom arguments that will also be cached
+        """
         raise NotImplemented
 
     async def _cached_score(
@@ -153,6 +161,7 @@ class ResponseCachingMixin:
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        """Caching wrapper for _uncached__score"""
         args: dict[str, Any] = {
             'cache_prefix': self.cache_prefix,
             'model_name': model_name,
@@ -191,4 +200,8 @@ class ResponseCachingMixin:
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        """Abstract method to cache.
+
+        kwargs are here to add custom arguments that will also be cached
+        """
         raise NotImplemented
