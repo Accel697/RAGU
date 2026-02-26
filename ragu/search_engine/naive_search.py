@@ -7,7 +7,7 @@ from ragu.common.global_parameters import Settings
 from ragu.graph.knowledge_graph import KnowledgeGraph
 from ragu.llm.embedder import Embedder
 from ragu.llm.llm import LLM
-from ragu.rerank.base_reranker import BaseReranker
+from ragu.llm.scorer import Scorer
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.types import NaiveSearchResult
 from ragu.storage import Embedding
@@ -30,7 +30,7 @@ class NaiveSearchEngine(BaseEngine):
         llm: LLM,
         knowledge_graph: KnowledgeGraph,
         embedder: Embedder,
-        reranker: Optional[BaseReranker] = None,
+        reranker: Optional[Scorer] = None,
         max_context_length: int = 30_000,
         tokenizer_backend: str = "tiktoken",
         tokenizer_model: str = "gpt-4",
@@ -113,9 +113,9 @@ class NaiveSearchEngine(BaseEngine):
         scores = valid_distances
         if self.reranker is not None and chunks:
             chunk_contents = [c.content for c in chunks]
-            rerank_results = await self.reranker.rerank(query, chunk_contents)
-            reranked_chunks = []
-            reranked_scores = []
+            rerank_results = await self.reranker.score(query, chunk_contents)
+            reranked_chunks: list[Chunk] = []
+            reranked_scores: list[float] = []
             for idx, score in rerank_results:
                 reranked_chunks.append(chunks[idx])
                 reranked_scores.append(score)

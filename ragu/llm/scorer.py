@@ -7,6 +7,7 @@ from pydantic import BaseModel
 if TYPE_CHECKING:
     from sentence_transformers import CrossEncoder
 
+from ragu.common.logger import logger
 from ragu.common.batch_generator import BatchGenerator
 from ragu.llm.openai import CachedAsyncOpenAI
 
@@ -31,6 +32,7 @@ class Scorer(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> list[list[tuple[int, float]]]:
+        logger.debug(f'Calling batch_score with size {len(texts)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.score(
                 text_1=text_1,

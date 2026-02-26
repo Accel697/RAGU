@@ -70,14 +70,14 @@ class ResponseCachingMixin:
         key = json.dumps(args, sort_keys=True)
 
         if self.cache is not None and (value := self.cache.get(key, None)):
-            logger.debug(f'Cache hit for {model_name}! Returning from cache.')
+            logger.debug(f'Cache hit for {model_name}!')
             cached: str | dict[str, Any]
             _args, cached = value
             result = cached if is_str else output_schema.model_validate(cached)
             return cast(T, result)
 
-        if self.cache is not None:
-            logger.debug(f'Cache miss for {model_name}! Doing a request.')
+        # if self.cache is not None:
+        #     logger.debug(f'Cache miss for {model_name}!')
 
         response = await self._uncached_chat_completion(
             model_name=model_name,
@@ -119,13 +119,13 @@ class ResponseCachingMixin:
         key = json.dumps(args, sort_keys=True)
 
         if self.cache is not None and (value := self.cache.get(key, None)):
-            logger.debug(f'Cache hit for {model_name}! Returning from cache.')
+            logger.debug(f'Cache hit for {model_name}!')
             cached: list[float] | FLOATS
             _args, cached = value
             return cached
 
-        if self.cache is not None:
-            logger.debug(f'Cache miss for {model_name}! Doing a request.')
+        # if self.cache is not None:
+        #     logger.debug(f'Cache miss for {model_name}!')
 
         response = await self._uncached_embed_text(
             model_name=model_name,
@@ -164,13 +164,13 @@ class ResponseCachingMixin:
         key = json.dumps(args, sort_keys=True)
 
         if self.cache is not None and (value := self.cache.get(key, None)):
-            logger.debug(f'Cache hit for {model_name}! Returning from cache.')
+            logger.debug(f'Cache hit for {model_name}!')
             cached: list[tuple[int, float]]
             _args, cached = value
             return cached
 
-        if self.cache is not None:
-            logger.debug(f'Cache miss for {model_name}! Doing a request.')
+        # if self.cache is not None:
+        #     logger.debug(f'Cache miss for {model_name}!')
 
         response = await self._uncached_score(
             model_name=model_name,

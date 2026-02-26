@@ -145,7 +145,7 @@ class Index:
 
         number_of_dimensions = len(dimensions_from_kwargs)
         if number_of_dimensions > 1:
-            raise ValueError(f"Dimension missmatch in vdb kwargs: {dimensions_from_kwargs}")
+            raise ValueError(f"Dimension mismatch in vdb kwargs: {dimensions_from_kwargs}")
         if number_of_dimensions == 1:
             if dimensions_from_kwargs[0] != embedding_dim_from_embedder:
                 raise ValueError(f"Dimension mismatch in vdb kwargs and embedder setup: "
@@ -817,7 +817,7 @@ class Index:
 
         payload_items = list(payloads.items())
         contents: List[str] = [str(payload.get("content", "")) for _, payload in payload_items]
-        vectors = asyncio.gather(*[
+        vectors = await asyncio.gather(*[
             self.embedder.embed_text(c)
             for c in contents
         ])

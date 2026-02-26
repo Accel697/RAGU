@@ -15,7 +15,7 @@ class Embedding:
     :param metadata: Additional payload.
     """
     vector: List[float] | FLOATS
-    metadata: Dict[str, Any] = field(default_factory=dict[str, Any])  # for pyright...
+    metadata: Dict[str, Any] = field(default_factory=dict[str, Any])
     id: Optional[str] = None
 
     def __post_init__(self):

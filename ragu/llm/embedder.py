@@ -5,6 +5,7 @@ from typing_extensions import override
 
 from pydantic import BaseModel
 
+from ragu.common.logger import logger
 from ragu.llm.openai import CachedAsyncOpenAI
 from ragu.utils.ragu_utils import FLOATS
 
@@ -31,6 +32,7 @@ class Embedder(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> list[list[float]] | FLOATS:
+        logger.debug(f'Calling batch_embed_text with size {len(texts)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.embed_text(
                 text=text,

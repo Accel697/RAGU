@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional
+from typing import List, Optional, Self
 
 from ragu.chunker.base_chunker import BaseChunker
 from ragu.chunker.types import Chunk
@@ -86,7 +86,7 @@ class KnowledgeGraph:
         self.remove_isolated_nodes = self.builder_settings.remove_isolated_nodes
         self.vectorize_chunks = self.builder_settings.vectorize_chunks
 
-    async def build_from_docs(self, docs: List[str]) -> "KnowledgeGraph":
+    async def build_from_docs(self, docs: List[str]) -> Self:
         """
         Build graph and vector context from a list of input documents.
 
@@ -95,13 +95,20 @@ class KnowledgeGraph:
         """
         chunks = self.pipeline.chunker.split(docs) if self.pipeline.chunker else \
             [Chunk(doc, i, doc_id=f"doc_{i}") for i, doc in enumerate(docs)]
+        logger.debug(f'Got {len(chunks)} chunks')
+
         chunks = await self._deduplicate_chunks_by_id(chunks)
+        logger.debug(f'Got {len(chunks)} chunks after deduplicating')
 
         if not chunks:
             logger.warning("Nothing to build.")
             return self
 
         entities, relations, summaries, communities, chunks = await self.pipeline.extract_graph(chunks)
+        logger.debug(f'Extracted {len(entities)} entities')
+        logger.debug(f'Extracted {len(relations)} relations')
+        logger.debug(f'Extracted {len(communities)} communities')
+        logger.debug(f'Extracted {len(chunks)} chunks')
 
         is_vector_only = self.builder_settings.build_only_vector_context
         should_store_communities = self.make_community_summary and not is_vector_only
@@ -112,7 +119,8 @@ class KnowledgeGraph:
                 communities,
                 summaries,
             )
-
+            
+        
         if not is_vector_only:
             await self.index.insert_entities(entities)
             await self.index.insert_relations(relations)

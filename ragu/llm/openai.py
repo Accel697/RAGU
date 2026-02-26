@@ -20,7 +20,7 @@ from tenacity import retry, stop_after_attempt, wait_chain, wait_fixed, before_s
 from aiolimiter import AsyncLimiter
 
 from ragu.llm.caching import ResponseCachingMixin
-from ragu.utils.ragu_utils import FLOATS, LoguruAdapter, acontexts
+from ragu.utils.ragu_utils import FLOATS, LoguruAdapter, attach_async_contexts, get_disk_cache, save_args_on_exception
 from ragu.common.logger import logger
 
 
@@ -81,13 +81,37 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         retry_times_sec: Sequence[float] | None = None,
         cache: MutableMapping[str, Any] | str | Path | None = None,
         cache_prefix: str = 'openai',
+        debug_errors_storage: MutableMapping[str, Any] | str | Path | None = None,
     ):
-        ResponseCachingMixin.__init__(self, cache=cache, cache_prefix=cache_prefix)
-
         self.client = client or AsyncOpenAI(
             base_url=base_url,
             api_key=api_key,
         )
+
+        # saving successuful responses
+        ResponseCachingMixin.__init__(self, cache=cache, cache_prefix=cache_prefix)
+
+        # storing original unwrapped medthods to be able to call them for debugging
+        self._uncached_raw_chat_completion = self._uncached_chat_completion
+        self._uncached_raw_embed_text = self._uncached_embed_text
+        self._uncached_raw_score = self._uncached_score
+
+        # saving errors to debug
+        self.debug_errors_storage: MutableMapping[str, Any] | None
+        match debug_errors_storage:
+            case None:
+                self.debug_errors_storage = None
+            case str() | Path():
+                self.debug_errors_storage = get_disk_cache(debug_errors_storage)
+            case _:
+                self.debug_errors_storage = debug_errors_storage
+        if self.debug_errors_storage is not None:
+            self._uncached_chat_completion = save_args_on_exception(
+                self._uncached_chat_completion, self.debug_errors_storage)
+            self._uncached_embed_text = save_args_on_exception(
+                self._uncached_embed_text, self.debug_errors_storage)
+            self._uncached_score = save_args_on_exception(
+                self._uncached_score, self.debug_errors_storage)
 
         # Handlers/wrappers will be called in this order:
         # 1. Caching
@@ -103,9 +127,12 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         if rate_min_delay:
             contexts.append(AsyncLimiter(1, time_period=rate_min_delay))
         if contexts:
-            self._uncached_chat_completion = acontexts(self._uncached_chat_completion, *contexts)
-            self._uncached_embed_text = acontexts(self._uncached_embed_text, *contexts)
-            self._uncached_score = acontexts(self._uncached_score, *contexts)
+            self._uncached_chat_completion = attach_async_contexts(
+                self._uncached_chat_completion, *contexts)
+            self._uncached_embed_text = attach_async_contexts(
+                self._uncached_embed_text, *contexts)
+            self._uncached_score = attach_async_contexts(
+                self._uncached_score, *contexts)
 
         # add retrying decorators
         if retry_times_sec:
@@ -120,6 +147,10 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
             self._uncached_chat_completion = retrying_decorator(self._uncached_chat_completion)
             self._uncached_embed_text = retrying_decorator(self._uncached_embed_text)
             self._uncached_score = retrying_decorator(self._uncached_score)
+
+    ######################
+    ### Public methods
+    ######################
     
     async def chat_completion(
         self,
@@ -161,6 +192,10 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
             **kwargs,
         )
 
+    ######################
+    ### Implementations
+    ######################
+
     @override
     async def _uncached_chat_completion(
         self,
@@ -170,12 +205,12 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         as_tool: bool = False,
         **kwargs: Any,
     ) -> T:
+        logger.debug(f'Sending chat_completion API request with schema {output_schema.__name__}...')
         recognized_kwargs = {
             k: kwargs.pop(k, omit)
             for k in ['temperature', 'top_p']
         }
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
-        logger.debug(f'Sending chat_completion API request...')
         if issubclass(output_schema, str):
             response = cast(ChatCompletion, await self.client.chat.completions.create(
                 model=model_name,
@@ -241,8 +276,9 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
+        debug_text = text[:20].replace("\n", "\\n")
+        logger.debug(f'Sending embed_text API request with text {debug_text}...')
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
-        logger.debug(f'Sending embed_text API request...')
         response = await self.client.embeddings.create(
             model=model_name, input=text,
         )
@@ -256,8 +292,9 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        debug_text = text_1[:20].replace("\n", "\\n")
+        logger.debug(f'Sending embed_text API request with text {debug_text}...')
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
-        logger.debug(f'Sending score API request...')
         
         headers = {"Content-Type": "application/json"}
         if self.client.api_key:

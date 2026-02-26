@@ -49,12 +49,12 @@ class QueryPlanEngine(BaseEngine):
         )
         rendered = rendered_list[0]
 
-        response: List[QueryPlan] = await self.engine.llm.generate(    # type: ignore
-            conversations=[rendered],
-            response_model=instruction.pydantic_model,
+        response: List[QueryPlan] = await self.engine.llm.chat_completion(    # type: ignore
+            rendered.to_openai(),
+            output_schema=instruction.pydantic_model,
         )
 
-        return response[0].subqueries
+        return response.subqueries
 
     async def _rewrite_subquery(self, subquery: SubQuery, context: Dict[str, str]) -> SubQuery:
         """
@@ -77,12 +77,12 @@ class QueryPlanEngine(BaseEngine):
         )
         rendered = rendered_list[0]
 
-        response: List[RewriteQuery | str] = await self.engine.llm.generate(
-            conversations=[rendered],
-            response_model=instruction.pydantic_model,
+        response: List[RewriteQuery | str] = await self.engine.llm.chat_completion(
+            rendered.to_openai(),
+            output_schema=instruction.pydantic_model,
         )
 
-        rewritten = response[0].query if isinstance(response[0], RewriteQuery) else response[0]
+        rewritten = response.query if isinstance(response, RewriteQuery) else response
         return subquery.model_copy(update={"query": rewritten})
 
     async def _answer_subquery(self, subquery: SubQuery, context: Dict[str, str]) -> str:

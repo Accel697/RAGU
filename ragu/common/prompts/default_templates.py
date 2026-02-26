@@ -92,12 +92,13 @@ Provide the answer in the following language: {{ language }}
 Return the result as valid JSON matching the provided schema.
 """
 
+# "Entity" -> "Entity name" to better match schema, and reduce json validation errors
 DEFAULT_ENTITY_SUMMARIZER_PROMPT = """
 **Goal**
 From the given entity and multiple phrases, produce one concise, consistent entity description.
 
 Data:
-Entity: {{ entity.entity_name }}, Description: {{ entity.description }}
+Entity name: {{ entity.entity_name }}, Description: {{ entity.description }}
 
 Provide the answer in the following language: {{ language }}
 Return the result as valid JSON matching the provided schema.

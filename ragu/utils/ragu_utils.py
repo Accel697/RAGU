@@ -5,6 +5,7 @@ import functools
 from hashlib import md5
 import logging
 from pathlib import Path
+import time
 from typing import Callable, Any, TypeVar, cast
 from typing import List
 
@@ -37,19 +38,40 @@ def get_disk_cache(dir: str | Path) -> MutableMapping[str, Any]:
 
 T_fn = TypeVar('T_fn', bound=Callable[..., Awaitable[Any]])
 
-def acontexts(
+def attach_async_contexts(
     func: T_fn,
     *contexts: AbstractAsyncContextManager[Any],
 ) -> T_fn:
     """Wraps the `func` into the given async contexts."""
     @functools.wraps(func)
     async def wrapper(*args: Any, **kwargs: Any) -> Any:
-        logger.debug('attach_async_contexts: entering context...')
+        # logger.debug('attach_async_contexts: entering context...')
         async with AsyncExitStack() as stack:
             for mgr in contexts:
                 await stack.enter_async_context(mgr)
-            logger.debug('attach_async_contexts: entered context!')
+            # logger.debug('attach_async_contexts: entered context!')
             return await func(*args, **kwargs)
+            
+    return cast(T_fn, wrapper)
+
+def save_args_on_exception(func: T_fn, storage: MutableMapping[str, Any]) -> T_fn:
+    """Wraps an async function. If it raises an exception, saves
+    the input args and kwargs into a global dict before re-raising.
+    """
+    @functools.wraps(func)
+    async def wrapper(*args: Any, **kwargs: Any) -> Any:
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            current_time = str(time.time_ns())
+            logger.debug(f'Saved args that caused {e.__class__.__name__} as {current_time}')
+            storage[current_time] = {
+                'function_name': func.__qualname__,
+                'args': args,
+                'kwargs': kwargs,
+                'exception': e,
+            }
+            raise
             
     return cast(T_fn, wrapper)
 

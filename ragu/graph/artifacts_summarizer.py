@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from itertools import chain
-from typing import List, Any, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 import pandas as pd

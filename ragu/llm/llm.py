@@ -7,6 +7,7 @@ from typing_extensions import override
 from openai.types.chat import ChatCompletionMessageParam
 from pydantic import BaseModel
 
+from ragu.common.logger import logger
 from ragu.llm.openai import CachedAsyncOpenAI
 
 
@@ -31,6 +32,7 @@ class LLM(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> Sequence[T]:
+        logger.debug(f'Calling batch_chat_completion with size {len(conversations)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.chat_completion(
                 conversation=conversation,
