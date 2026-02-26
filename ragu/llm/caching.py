@@ -93,15 +93,15 @@ class ResponseCachingMixin:
 
         return response
 
-    @abstractmethod
     async def _uncached_chat_completion(
         self,
         model_name: str,
         conversation: list[ChatCompletionMessageParam],
         output_schema: type[T] = str,
         **kwargs: Any,
-    ) -> T: ...
-        # kwargs are here to add custom arguments that will also be cached   
+    ) -> T:
+        # kwargs are here to add custom arguments that will also be cached
+        raise NotImplemented
 
     async def _cached_embed_text(
         self,
@@ -138,13 +138,13 @@ class ResponseCachingMixin:
 
         return response
 
-    @abstractmethod
     async def _uncached_embed_text(
         self,
         model_name: str,
         text: str,
         **kwargs: Any,
-    ) -> list[float] | FLOATS: ...
+    ) -> list[float] | FLOATS:
+        raise NotImplemented
 
     async def _cached_score(
         self,
@@ -191,4 +191,5 @@ class ResponseCachingMixin:
         text_1: str,
         text_2: list[str],
         **kwargs: Any,
-    ) -> list[tuple[int, float]]: ...
+    ) -> list[tuple[int, float]]:
+        raise NotImplemented
