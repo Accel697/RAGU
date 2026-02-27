@@ -2,9 +2,10 @@
 
 import os
 from typing import Any, List
+from typing_extensions import override
 
 import numpy as np
-from nano_vectordb import NanoVectorDB
+from nano_vectordb import NanoVectorDB # pyright: ignore[reportMissingTypeStubs]
 
 from ragu.common.global_parameters import Settings
 from ragu.common.logger import logger
@@ -27,7 +28,7 @@ class NanoVectorDBStorage(BaseVectorStorage):
         cosine_threshold: float = 0.2,
         storage_folder: str = Settings.storage_folder,
         filename: str = "data.json",
-        **kwargs
+        **kwargs: Any,
     ):
         """
         Initialize the NanoVectorDB-based vector storage.
@@ -48,7 +49,8 @@ class NanoVectorDBStorage(BaseVectorStorage):
             storage_file=self.filename
         )
 
-    async def upsert(self, data: List[Embedding]) -> List[Any]:
+    @override
+    async def upsert(self, data: List[Embedding]):  # should not return, see base class
         """
         Insert or update a batch of embeddings in the database.
 
@@ -57,17 +59,18 @@ class NanoVectorDBStorage(BaseVectorStorage):
         """
         if not data:
             logger.warning("Attempted to insert empty data into vector DB.")
-            return []
+            return
 
         valid_data: List[dict[str, Any]] = []
         skipped = 0
 
         for embedding in data:
-            if embedding.vector is None:
-                skipped += 1
-                continue
+            assert embedding.vector is not None  # should not happen according to typing
+            # if embedding.vector is None:
+            #     skipped += 1
+            #     continue
 
-            item = {
+            item: dict[str, Any] = {
                 "__id__": embedding.id,
                 "__vector__": np.array(embedding.vector),
                 **embedding.metadata,
@@ -78,10 +81,11 @@ class NanoVectorDBStorage(BaseVectorStorage):
             logger.warning(f"Skipped {skipped} items with missing embeddings.")
 
         if not valid_data:
-            return []
+            return
 
-        return self._client.upsert(datas=valid_data)  # type: ignore
+        self._client.upsert(datas=valid_data)  # type: ignore
 
+    @override
     async def query(self, vector: Embedding, top_k: int = 5) -> List[EmbeddingHit]:
         """
         Search for the most similar documents in the vector database.
@@ -93,22 +97,22 @@ class NanoVectorDBStorage(BaseVectorStorage):
         :param top_k: Number of nearest neighbors to return.
         :return: List of matched records and their distances.
         """
-        results = self._client.query(
+        results = self._client.query( # type: ignore
             query=np.array(vector.vector),
             top_k=top_k,
             better_than_threshold=self.cosine_threshold
         )
         hits: List[EmbeddingHit] = []
-        for result in results:
-            metadata = {
+        for result in results: # type: ignore
+            metadata: dict[str, Any] = {
                 key: value
-                for key, value in result.items()
+                for key, value in result.items() # type: ignore
                 if key not in {"__id__", "__metrics__", "__vector__"}
             }
             hits.append(
                 EmbeddingHit(
-                    id=result["__id__"],
-                    distance=float(result["__metrics__"]),
+                    id=result["__id__"], # type: ignore
+                    distance=float(result["__metrics__"]), # type: ignore
                     metadata=metadata,
                 )
             )
@@ -126,6 +130,7 @@ class NanoVectorDBStorage(BaseVectorStorage):
         """
         pass
 
+    @override
     async def delete(self, ids: List[str]) -> None:
         """
         Delete embeddings by their IDs from the vector database.

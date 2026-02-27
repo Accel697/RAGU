@@ -1,13 +1,13 @@
-from typing import Optional, List
+from typing import Any, Optional, List
 
 from pydantic import BaseModel
 
 from ragu.chunker.types import Chunk
 from ragu.common.global_parameters import Settings
-from ragu.embedder.base_embedder import BaseEmbedder
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm.base_llm import BaseLLM
-from ragu.rerank.base_reranker import BaseReranker
+from ragu.models.embedder import Embedder
+from ragu.models.llm import LLM
+from ragu.models.scorer import Scorer
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.types import NaiveSearchResult
 from ragu.storage import Embedding
@@ -27,21 +27,21 @@ class NaiveSearchEngine(BaseEngine):
 
     def __init__(
         self,
-        client: BaseLLM,
+        llm: LLM,
         knowledge_graph: KnowledgeGraph,
-        embedder: BaseEmbedder,
-        reranker: Optional[BaseReranker] = None,
+        embedder: Embedder,
+        reranker: Optional[Scorer] = None,
         max_context_length: int = 30_000,
         tokenizer_backend: str = "tiktoken",
         tokenizer_model: str = "gpt-4",
         language: str | None = None,
-        *args,
-        **kwargs
+        *args: Any,
+        **kwargs: Any,
     ):
         """
         Initialize a `NaiveSearchEngine`.
 
-        :param client: LLM client used to generate the final answer.
+        :param llm: LLM used to generate the final answer.
         :param knowledge_graph: Knowledge graph containing chunk vector DB and chunk KV storage.
         :param embedder: Embedding model (kept for interface parity; retrieval uses graph index DBs).
         :param reranker: Optional reranker used to improve ranking of retrieved chunks.
@@ -51,7 +51,7 @@ class NaiveSearchEngine(BaseEngine):
         :param language: Default output language
         """
         _PROMPTS_NAMES = ["naive_search"]
-        super().__init__(client=client, prompts=_PROMPTS_NAMES, *args, **kwargs)
+        super().__init__(llm=llm, prompts=_PROMPTS_NAMES, *args, **kwargs)
 
         self.truncation = TokenTruncation(
             tokenizer_model,
@@ -62,7 +62,7 @@ class NaiveSearchEngine(BaseEngine):
         self.graph = knowledge_graph
         self.embedder = embedder
         self.reranker = reranker
-        self.client = client
+        self.llm = llm
         self.language = language if language else Settings.language
 
     async def a_search(
@@ -70,8 +70,8 @@ class NaiveSearchEngine(BaseEngine):
         query: str,
         top_k: int = 20,
         rerank_top_k: Optional[int] = None,
-        *args,
-        **kwargs
+        *args: Any,
+        **kwargs: Any,
     ) -> NaiveSearchResult:
         """
         Perform a naive vector search over chunks.
@@ -82,9 +82,9 @@ class NaiveSearchEngine(BaseEngine):
                              If None, keeps all reranked chunks. Used only when reranker is set.
         :return: NaiveSearchResult with retrieved chunks, scores, and document ids.
         """
-        vectorized_query = await self.embedder(query)
+        vectorized_query = await self.embedder.embed_text(query)
         results = await self.graph.index.chunk_vector_db.query(
-            Embedding(vector=vectorized_query[0]),
+            Embedding(vector=vectorized_query),
         )
 
         if not results:
@@ -113,9 +113,9 @@ class NaiveSearchEngine(BaseEngine):
         scores = valid_distances
         if self.reranker is not None and chunks:
             chunk_contents = [c.content for c in chunks]
-            rerank_results = await self.reranker.rerank(query, chunk_contents)
-            reranked_chunks = []
-            reranked_scores = []
+            rerank_results = await self.reranker.score(query, chunk_contents)
+            reranked_chunks: list[Chunk] = []
+            reranked_scores: list[float] = []
             for idx, score in rerank_results:
                 reranked_chunks.append(chunks[idx])
                 reranked_scores.append(score)
@@ -158,9 +158,7 @@ class NaiveSearchEngine(BaseEngine):
         )
         rendered: ChatMessages = rendered_list[0]
 
-        result: List = await self.client.generate(
-            conversations=[rendered],
-            response_model=instruction.pydantic_model,
-        )
-
-        return result[0]
+        return await self.llm.chat_completion(
+            conversation=rendered.to_openai(),
+            output_schema=instruction.pydantic_model or str, # type: ignore
+        ) # type: ignore

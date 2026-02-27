@@ -7,15 +7,14 @@ from ragu.common.global_parameters import Settings
 from ragu.embedder.base_embedder import BaseEmbedder
 from ragu.graph.graph_builder_pipeline import BuilderArguments
 from ragu.graph.knowledge_graph import KnowledgeGraph
+from ragu.utils.ragu_utils import FLOATS
 
 
 class DummyEmbedder(BaseEmbedder):
     def __init__(self, dim: int = 3072):
         super().__init__(dim=dim)
 
-    async def embed(self, texts):
-        if isinstance(texts, str):
-            texts = [texts]
+    async def embed(self, texts: list[str]) -> list[list[float]] | FLOATS:
         return [[0.001] * self.dim for _ in texts]
 
 
@@ -24,7 +23,7 @@ def real_kg():
     previous_storage = Settings.storage_folder
     Settings.storage_folder = "tests/kg_for_test"
     kg = KnowledgeGraph(
-        client=None,
+        llm=None,
         embedder=DummyEmbedder(dim=3072),
         builder_settings=BuilderArguments(use_llm_summarization=False),
     )

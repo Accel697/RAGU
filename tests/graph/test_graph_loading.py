@@ -7,12 +7,13 @@ from disk storage without rebuilding.
 
 from pathlib import Path
 
+from openai import AsyncOpenAI
 import pytest
 
 from ragu.common.global_parameters import Settings
 from ragu.embedder import OpenAIEmbedder
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.llm import OpenAIClient
+from ragu.models import OpenAIClient
 
 
 class TestGraphLoading:
@@ -53,8 +54,10 @@ class TestGraphLoading:
         """
         return OpenAIEmbedder(
             model_name="text-embedding-3-large",
-            base_url="https://api.openai.com/v1",
-            api_token="dummy-key",
+            client=AsyncOpenAI(
+                base_url="https://api.openai.com/v1",
+                api_key="dummy-key",
+            ),
             dim=3072,  # Match the dimension used in example graph
         )
 
@@ -86,7 +89,7 @@ class TestGraphLoading:
         """
         # Load graph (should load from storage, not build)
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -99,7 +102,7 @@ class TestGraphLoading:
         Verify that loaded graph contains entities.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -117,7 +120,7 @@ class TestGraphLoading:
         Verify that loaded graph contains relations.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -133,7 +136,7 @@ class TestGraphLoading:
         Verify that entity vector database is loaded.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 
@@ -149,7 +152,7 @@ class TestGraphLoading:
         Verify that chunks are loaded from KV storage.
         """
         kg = KnowledgeGraph(
-            client=mock_client,
+            llm=mock_client,
             embedder=mock_embedder,
         )
 

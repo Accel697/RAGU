@@ -22,11 +22,16 @@ Modules overview
 
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, TypedDict
 
 import numpy as np
 
 from ragu.utils.ragu_utils import compute_mdhash_id
+
+
+class ClusterInfo(TypedDict):
+    level: int
+    cluster_id: int  # str or int?
 
 
 @dataclass(slots=True)
@@ -46,9 +51,10 @@ class Entity:
     entity_type: str
     description: str
     source_chunk_id: list[str]
-    documents_id: list[str] = field(default_factory=list)
-    clusters: list[dict] = field(default_factory=list)
-    id: str | None = None
+    documents_id: list[str] = field(default_factory=list[str])
+    clusters: list[ClusterInfo] = field(default_factory=list[ClusterInfo])
+    id: str = 'auto'
+    # if type-hint id as str | None, this will raise type checker errors in many places
 
     def __post_init__(self):
         """
@@ -56,9 +62,9 @@ class Entity:
 
         :return: None
         """
-        if not self.id:
+        if self.id == 'auto':
             self.id = compute_mdhash_id(
-                content=(self.entity_name + " - " + self.entity_type),
+                (self.entity_name + " - " + self.entity_type),
                 prefix="ent-"
             )
 
@@ -101,16 +107,17 @@ class Relation:
     relation_type: str
     description: str
     relation_strength: int | float = 1.0
-    source_chunk_id: list[str] = field(default_factory=list)
-    id: str | None = None
+    source_chunk_id: list[str] = field(default_factory=list[str])
+    id: str = 'auto'
+    # if type-hint id as str | None, this will raise type checker errors in many places
 
     def __post_init__(self):
         """
         Generate a stable MD5-based identifier if not already set.
         """
-        if not self.id:
+        if self.id == 'auto':
             self.id = compute_mdhash_id(
-                content=(self.subject_id + " -> " + self.object_id + self.relation_type),
+                (self.subject_id + " -> " + self.object_id + self.relation_type),
                 prefix="rel-"
             )
     def __eq__(self, other):
@@ -144,15 +151,16 @@ class Community:
     cluster_id: int
     entities: List[Entity]
     relations: List[Relation]
-    id: str | None = None
+    id: str = 'auto'
+    # if type-hint id as str | None, this will raise type checker errors in many places
 
     def __post_init__(self):
         """
         Generate a stable MD5-based identifier if not already set.
         """
-        if not self.id:
+        if self.id == 'auto':
             self.id = compute_mdhash_id(
-                content=f"{self.level}:{self.cluster_id}",
+                f"{self.level}:{self.cluster_id}",
                 prefix="com-"
             )
 

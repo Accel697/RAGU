@@ -8,7 +8,7 @@ from ragu.graph.knowledge_graph import KnowledgeGraph
 from ragu.graph.types import Entity, Community
 
 
-async def _find_most_related_edges_from_entities(entities, knowledge_graph: KnowledgeGraph):
+async def _find_most_related_edges_from_entities(entities: list[Entity], knowledge_graph: KnowledgeGraph):
     entity_ids = [entity.id for entity in entities if entity and entity.id]
     if not entity_ids:
         return []

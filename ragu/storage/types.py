@@ -2,9 +2,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Optional
 
-import numpy as np
-
-from ragu.utils.ragu_utils import compute_mdhash_id
+from ragu.utils.ragu_utils import FLOATS, compute_mdhash_id
 
 
 @dataclass(slots=True)
@@ -16,8 +14,8 @@ class Embedding:
     :param vector: Embedding vector.
     :param metadata: Additional payload.
     """
-    vector: List[float] | np.ndarray
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    vector: List[float] | FLOATS
+    metadata: Dict[str, Any] = field(default_factory=dict[str, Any])
     id: Optional[str] = None
 
     def __post_init__(self):
@@ -37,4 +35,4 @@ class EmbeddingHit:
     """
     id: str
     distance: float
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict[str, Any])

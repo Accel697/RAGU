@@ -12,5 +12,5 @@ class Chunk:
     num_tokens: int | None = None
 
     def __post_init__(self):
-        self.id = compute_mdhash_id(content=self.content, prefix="chunk-")
+        self.id = compute_mdhash_id(self.content, prefix="chunk-")
 

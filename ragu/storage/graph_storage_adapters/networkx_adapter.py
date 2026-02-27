@@ -8,7 +8,9 @@ from typing import (
     Iterable,
     List,
     Optional,
+    cast,
 )
+from typing_extensions import override
 
 import networkx as nx
 
@@ -34,23 +36,25 @@ class NetworkXStorage(BaseGraphStorage):
     def __init__(
         self,
         filename: str,
-        **kwargs,
+        **kwargs: Any,
     ):
         """
         Initialize a new NetworkXStorage.
 
         :param filename: Path to a `.gml` file used for persistence.
         """
-        loaded = nx.read_gml(filename) if os.path.exists(filename) else nx.MultiGraph()
-        self._graph: nx.MultiGraph = loaded if isinstance(loaded, nx.MultiGraph) else nx.MultiGraph(loaded)
+        loaded = nx.read_gml(filename) if os.path.exists(filename) else nx.MultiGraph() # type: ignore
+        self._graph: nx.MultiGraph[Any] = (
+            loaded if isinstance(loaded, nx.MultiGraph) else nx.MultiGraph(loaded) # type: ignore
+        )
         self._where_to_save = filename
 
     @staticmethod
     def _entity_from_node(entity_id: str, metadata: Dict[str, Any]) -> Entity:
         return Entity(
             id=entity_id,
-            entity_name=metadata.get("entity_name"),
-            entity_type=metadata.get("entity_type"),
+            entity_name=cast(str, metadata.get("entity_name")),
+            entity_type=cast(str, metadata.get("entity_type")),
             description=metadata.get("description", ""),
             source_chunk_id=list(metadata.get("source_chunk_id", [])),
             clusters=metadata.get("clusters", []),
@@ -76,7 +80,7 @@ class NetworkXStorage(BaseGraphStorage):
         """
         Persist the current graph state to disk in GML format.
         """
-        nx.write_gml(self._graph, self._where_to_save)
+        nx.write_gml(self._graph, self._where_to_save) # type: ignore
 
     async def query_done_callback(self) -> None:
         """
@@ -112,6 +116,7 @@ class NetworkXStorage(BaseGraphStorage):
 
         return relations
 
+    @override
     async def edges_degrees(self, edge_specs: List[EdgeSpec]) -> List[int]:
         """
         Retrieve degree values for multiple edges.
@@ -123,7 +128,7 @@ class NetworkXStorage(BaseGraphStorage):
         :return: Degree sums aligned with ``edge_specs``.
         """
         degrees: List[int] = []
-        for subject_id, object_id, relation_id in edge_specs:
+        for subject_id, object_id, _relation_id in edge_specs:
             degree = (
                 (self._graph.degree(subject_id) if self._graph.has_node(subject_id) else 0)
                 + (self._graph.degree(object_id) if self._graph.has_node(object_id) else 0)
@@ -131,6 +136,7 @@ class NetworkXStorage(BaseGraphStorage):
             degrees.append(degree)
         return degrees
 
+    @override
     async def upsert_nodes(self, nodes: Iterable[Entity]) -> None:
         """
         Insert or update multiple nodes in the graph.
@@ -142,6 +148,7 @@ class NetworkXStorage(BaseGraphStorage):
             attrs = _entity_to_attrs(node)
             self._graph.add_node(node.id, **attrs)
 
+    @override
     async def get_nodes(self, node_ids: List[str]) -> List[Optional[Entity]]:
         """
         Retrieve multiple nodes by their IDs.
@@ -158,6 +165,7 @@ class NetworkXStorage(BaseGraphStorage):
             results.append(Entity(id=node_id, **data))
         return results
 
+    @override
     async def delete_nodes(self, node_ids: List[str]) -> None:
         """
         Delete multiple nodes from the graph.
@@ -170,6 +178,7 @@ class NetworkXStorage(BaseGraphStorage):
             if self._graph.has_node(node_id):
                 self._graph.remove_node(node_id)
 
+    @override
     async def get_edges(self, edge_specs: List[EdgeSpec]) -> List[Optional[Relation]]:
         """
         Retrieve multiple edges by specs.
@@ -201,6 +210,7 @@ class NetworkXStorage(BaseGraphStorage):
                 results.append(relation)
         return results
 
+    @override
     async def upsert_edges(self, edges: List[Relation]) -> None:
         """
         Insert or update multiple edges in the graph.
@@ -214,6 +224,7 @@ class NetworkXStorage(BaseGraphStorage):
             edge_key = edge.id
             self._graph.add_edge(edge.subject_id, edge.object_id, key=edge_key, **edge_data)
 
+    @override
     async def delete_edges(self, edge_specs: List[EdgeSpec]) -> None:
         """
         Delete multiple edges from the graph.
@@ -235,6 +246,7 @@ class NetworkXStorage(BaseGraphStorage):
             for k in keys_to_remove:
                 self._graph.remove_edge(u, v, key=k)
 
+    @override
     async def get_all_edges_for_nodes(self, node_ids: List[str]) -> List[List[Relation]]:
         """
         Retrieve edges for each given node.
@@ -263,6 +275,7 @@ class NetworkXStorage(BaseGraphStorage):
 
         return grouped_relations
 
+    @override
     async def get_all_nodes(self) -> List[Entity]:
         """
         Retrieve all nodes in the graph.
@@ -275,6 +288,7 @@ class NetworkXStorage(BaseGraphStorage):
             entities.append(entity)
         return entities
 
+    @override
     async def get_all_edges(self) -> List[Relation]:
         """
         Retrieve all edges in the graph.

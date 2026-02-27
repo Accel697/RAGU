@@ -11,19 +11,19 @@ from ragu.graph.types import Entity, Relation
 
 def test_entity_summarizer_requires_client_when_llm_enabled():
     with pytest.raises(ValueError, match="no client is provided"):
-        EntitySummarizer(client=None, use_llm_summarization=True)
+        EntitySummarizer(llm=None, use_llm_summarization=True)
 
 
 @pytest.mark.asyncio
 async def test_entity_summarizer_run_empty_returns_empty_list():
-    summarizer = EntitySummarizer(client=None, use_llm_summarization=False)
+    summarizer = EntitySummarizer(llm=None, use_llm_summarization=False)
     assert await summarizer.run([]) == []
 
 
 @pytest.mark.asyncio
 async def test_entity_summarizer_run_without_llm_deduplicates_entities():
     summarizer = EntitySummarizer(
-        client=None,
+        llm=None,
         use_llm_summarization=False,
         use_clustering=False,
         summarize_only_if_more_than=1,
@@ -73,7 +73,7 @@ async def test_entity_summarizer_llm_path_updates_description(monkeypatch):
         return_value=[EntityDescriptionModel(entity_name="Alice", description="LLM summary")]
     )
     summarizer = EntitySummarizer(
-        client=client,
+        llm=client,
         use_llm_summarization=True,
         use_clustering=False,
         summarize_only_if_more_than=1,
@@ -120,12 +120,12 @@ async def test_entity_summarizer_llm_path_updates_description(monkeypatch):
 
 def test_relation_summarizer_requires_client_when_llm_enabled():
     with pytest.raises(ValueError, match="no client is provided"):
-        RelationSummarizer(client=None, use_llm_summarization=True)
+        RelationSummarizer(llm=None, use_llm_summarization=True)
 
 
 @pytest.mark.asyncio
 async def test_relation_summarizer_run_empty_returns_empty_list():
-    summarizer = RelationSummarizer(client=None, use_llm_summarization=False)
+    summarizer = RelationSummarizer(llm=None, use_llm_summarization=False)
     assert await summarizer.run([]) == []
 
 
@@ -170,7 +170,7 @@ def test_relation_group_relations_merges_duplicates():
 @pytest.mark.asyncio
 async def test_relation_summarizer_run_without_llm_deduplicates_relations():
     summarizer = RelationSummarizer(
-        client=None,
+        llm=None,
         use_llm_summarization=False,
         summarize_only_if_more_than=1,
     )
@@ -235,7 +235,7 @@ async def test_relation_summarizer_llm_path_updates_description(monkeypatch):
         ]
     )
     summarizer = RelationSummarizer(
-        client=client,
+        llm=client,
         use_llm_summarization=True,
         summarize_only_if_more_than=1,
     )
