@@ -1,5 +1,6 @@
 # Partially based on https://github.com/gusye1234/nano-graphrag/blob/main/nano_graphrag/
 from typing import Any, List
+from typing_extensions import override
 
 from pydantic import BaseModel
 
@@ -72,6 +73,7 @@ class LocalSearchEngine(BaseEngine):
         self.embedder = embedder
         self.language = language if language else Settings.language
 
+    @override
     async def a_search(self, query: str, top_k: int = 20, *args, **kwargs) -> LocalSearchResult:
         """
         Retrieve local graph context for the given query.
@@ -106,15 +108,30 @@ class LocalSearchEngine(BaseEngine):
             documents_id=documents_id,
         )
 
-    async def a_query(self, query: str, top_k: int = 20) -> str | BaseModel:
+    @override
+    async def a_query(
+            self,
+            query: str,
+            top_k: int = 20,
+            use_summary: bool=False,
+            use_chunks: bool=False
+    ) -> str | BaseModel:
         """
         Execute a local RAG query.
 
         :param query: User query in natural language.
         :param top_k: Number of entities to retrieve into context.
+        :param use_summary: Whether to use summary or not.
+        :param use_chunks: Whether to use chunks or not.
         :return: Generated answer as a string or Pydantic model when a response schema is set.
         """
         context: LocalSearchResult = await self.a_search(query, top_k)
+
+        if not use_summary:
+            context.summaries = []
+        if not use_chunks:
+            context.chunks = []
+
         truncated_context: str = self.truncation(str(context))
         instruction: RAGUInstruction = self.get_prompt("local_search")
 
