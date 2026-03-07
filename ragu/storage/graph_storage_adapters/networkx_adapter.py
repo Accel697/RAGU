@@ -43,11 +43,34 @@ class NetworkXStorage(BaseGraphStorage):
 
         :param filename: Path to a `.gml` file used for persistence.
         """
-        loaded = nx.read_gml(filename) if os.path.exists(filename) else nx.MultiGraph() # type: ignore
-        self._graph: nx.MultiGraph[Any] = (
-            loaded if isinstance(loaded, nx.MultiGraph) else nx.MultiGraph(loaded) # type: ignore
+        loaded = nx.read_gml(filename) if os.path.exists(filename) else nx.MultiDiGraph() # type: ignore
+        self._graph: nx.MultiDiGraph[Any] = (
+            loaded if isinstance(loaded, nx.MultiDiGraph) else nx.MultiDiGraph(loaded) # type: ignore
         )
         self._where_to_save = filename
+
+    def _iter_incident_edges(self, node_id: str):
+        """
+        Iterate all incoming and outgoing edges for a node.
+
+        In directed graphs, ``edges(node_id)`` returns only outgoing edges.
+        This helper merges out/in edges and deduplicates by edge triple.
+        """
+        seen: set[tuple[str, str, str]] = set()
+
+        for u, v, key, data in self._graph.out_edges(node_id, keys=True, data=True):
+            edge_tuple = (str(u), str(v), str(key))
+            if edge_tuple in seen:
+                continue
+            seen.add(edge_tuple)
+            yield u, v, key, data
+
+        for u, v, key, data in self._graph.in_edges(node_id, keys=True, data=True):
+            edge_tuple = (str(u), str(v), str(key))
+            if edge_tuple in seen:
+                continue
+            seen.add(edge_tuple)
+            yield u, v, key, data
 
     @staticmethod
     def _entity_from_node(entity_id: str, metadata: Dict[str, Any]) -> Entity:
@@ -110,7 +133,7 @@ class NetworkXStorage(BaseGraphStorage):
             return []
 
         relations: List[Relation] = []
-        for u, v, key, metadata in self._graph.edges(source_node_id, keys=True, data=True):
+        for u, v, key, metadata in self._iter_incident_edges(source_node_id):
             relation = self._relation_from_edge(str(u), str(v), key, metadata)
             relations.append(relation)
 
@@ -265,7 +288,7 @@ class NetworkXStorage(BaseGraphStorage):
                 grouped_relations.append(node_relations)
                 continue
 
-            for u, v, key, metadata in self._graph.edges(node_id, keys=True, data=True):
+            for u, v, key, metadata in self._iter_incident_edges(node_id):
                 relation = self._relation_from_edge(str(u), str(v), key, metadata)
                 relation.subject_name = self._graph.nodes.get(u, {}).get("entity_name", relation.subject_id)
                 relation.object_name = self._graph.nodes.get(v, {}).get("entity_name", relation.object_id)
