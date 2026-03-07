@@ -150,6 +150,8 @@ class BaseKVStorage(Generic[T], BaseStorage, ABC):
 class BaseGraphStorage(BaseStorage, ABC):
     """
     Abstract interface for multigraph storage backends.
+
+    RAGU assumes that every graph implementation is a directed multigraph.
     """
 
     @abstractmethod
