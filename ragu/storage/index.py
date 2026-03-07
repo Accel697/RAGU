@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 from collections import defaultdict
@@ -212,7 +211,7 @@ class Index:
             }
             for e in entities_to_insert
         }
-        embeddings = await self._build_embeddings(vdb_data)
+        embeddings = await self._build_embeddings(vdb_data, tqdm_title="Entities vectorization")
         await self.entity_vector_db.upsert(embeddings)
 
         await self.graph_backend.index_done_callback()
@@ -259,7 +258,7 @@ class Index:
             }
             for e in entities_to_update
         }
-        embeddings = await self._build_embeddings(vdb_data)
+        embeddings = await self._build_embeddings(vdb_data, tqdm_title="Entities vectorization")
         await self.entity_vector_db.upsert(embeddings)
 
         await self.graph_backend.index_done_callback()
@@ -330,7 +329,7 @@ class Index:
         }
         if existing_relation_ids:
             await self.relation_vector_db.delete(existing_relation_ids)
-        embeddings = await self._build_embeddings(vdb_data)
+        embeddings = await self._build_embeddings(vdb_data, tqdm_title="Relations vectorization")
         await self.relation_vector_db.upsert(embeddings)
 
         await self.graph_backend.index_done_callback()
@@ -395,7 +394,7 @@ class Index:
             for r in relations_to_update
         }
         await self.relation_vector_db.delete(relation_ids)
-        embeddings = await self._build_embeddings(vdb_data)
+        embeddings = await self._build_embeddings(vdb_data, tqdm_title="Relations vectorization")
         await self.relation_vector_db.upsert(embeddings)
 
         await self.graph_backend.index_done_callback()
@@ -429,7 +428,7 @@ class Index:
             c.id: {"content": c.content, "doc_id": c.doc_id}
             for c in chunks
         }
-        embeddings = await self._build_embeddings(vdb_data)
+        embeddings = await self._build_embeddings(vdb_data, tqdm_title="Chunks vectorization")
         await self.chunk_vector_db.upsert(embeddings)
         await self.chunk_vector_db.index_done_callback()
 
@@ -803,7 +802,11 @@ class Index:
         relations = await self.get_relations(edge_specs)
         return [r for r in relations if r is not None]
 
-    async def _build_embeddings(self, payloads: Dict[str, Dict[str, Any]]) -> List[Embedding]:
+    async def _build_embeddings(
+            self, 
+            payloads: Dict[str, Dict[str, Any]], 
+            tqdm_title: Optional[str]="Vectorization"
+    ) -> List[Embedding]:
         """
         Convert text payloads to vector embeddings.
 
@@ -817,10 +820,7 @@ class Index:
 
         payload_items = list(payloads.items())
         contents: List[str] = [str(payload.get("content", "")) for _, payload in payload_items]
-        vectors = await asyncio.gather(*[
-            self.embedder.embed_text(c)
-            for c in contents
-        ])
+        vectors = await self.embedder.batch_embed_text(contents, desc=tqdm_title)
 
         embeddings: List[Embedding] = []
         for (record_id, payload), vector in zip(payload_items, vectors):
