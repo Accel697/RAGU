@@ -29,9 +29,9 @@ class LocalSearchResult:
         {%- endfor %}
         
         **Relations**
-        Subject, object, relation type, relation description, rank
+        Subject, relation type, object, relation description, rank
         {%- for r in relations %}
-        {{ r.subject_name }}, {{ r.object_name }}, {{ r.relation_type }} {{ r.description }}, {{ r.rank }}
+        {{ r.subject_name }}, {{ r.relation_type }}, {{ r.object_name }} - {{ r.description }}, {{ r.rank }}
         {%- endfor %}
         
         {%- if summaries %}
