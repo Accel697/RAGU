@@ -28,7 +28,8 @@ T = TypeVar('T', BaseModel, str)
 
 @dataclass
 class CachedAsyncOpenAI(ResponseCachingMixin):
-    """OpenAI client able to respond with structured outputs and
+    """
+    OpenAI client able to respond with structured outputs and
     embeddings, with response caching, rate limiting and request retrying.
 
     If `client` is provided, the arguments `base_url` and `api_key`
@@ -86,6 +87,23 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         cache_prefix: str = 'openai',
         debug_errors_storage: MutableMapping[str, Any] | str | Path | None = None,
     ):
+        """
+        Initializes backend client.
+
+        :param base_url: Base URL for OpenAI-compatible provider.
+        :param api_key: API key for provider authentication.
+        :param client: Preconfigured AsyncOpenAI client. If provided, ``base_url``
+            and ``api_key`` are ignored.
+        :param rate_min_delay: Minimum delay in seconds between request starts.
+        :param rate_max_per_minute: Maximum number of requests per minute.
+        :param rate_max_simultaneous: Maximum number of concurrent requests.
+        :param retry_times_sec: Retry wait schedule in seconds, e.g. ``(4, 8)``.
+        :param cache: Optional cache mapping or path accepted by
+            :class:`ResponseCachingMixin`.
+        :param cache_prefix: Prefix included in cache keys.
+        :param debug_errors_storage: Optional mapping/path to store failing call
+            arguments for debugging.
+        """
         self.client = client or AsyncOpenAI(
             base_url=base_url,
             api_key=api_key,
@@ -159,7 +177,16 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         output_schema: type[T] = str,
         **kwargs: Any,
     ) -> T:
-        """Returns LLM response, in form or string or BaseModel."""
+        """
+        Returns chat completion result with caching.
+
+        :param model_name: Provider model name.
+        :param conversation: OpenAI-format chat messages.
+        :param output_schema: ``str`` for text output or ``BaseModel`` subclass
+            for structured output.
+        :param kwargs: Forwarded generation options (for example temperature).
+        :returns: Model response as ``str`` or validated schema instance.
+        """
         return await self._cached_chat_completion(
             model_name=model_name,
             conversation=conversation,
@@ -173,12 +200,19 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
-            """Calculates embedding for the text."""
-            return await self._cached_embed_text(
-                model_name=model_name,
-                text=text,
-                **kwargs,
-            )
+        """
+        Returns text embedding with caching.
+
+        :param model_name: Provider embedding model name.
+        :param text: Input text to embed.
+        :param kwargs: Extra backend-specific options.
+        :returns: Vector embedding.
+        """
+        return await self._cached_embed_text(
+            model_name=model_name,
+            text=text,
+            **kwargs,
+        )
     
     async def score(
         self,
@@ -187,8 +221,14 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
-        """Scores text similarity with a list of other texts. Returns tuples
-        of (index, score) sorted by score in descending order.
+        """
+        Returns rerank scores.
+
+        :param model_name: Provider reranker model name.
+        :param text_1: Source or query text.
+        :param text_2: Candidate texts to score against ``text_1``.
+        :param kwargs: Extra backend-specific options.
+        :returns: ``(index, score)`` tuples sorted by score descending.
         """
         return await self._cached_score(
             model_name=model_name,
@@ -206,7 +246,17 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         as_tool: bool = False,
         **kwargs: Any,
     ) -> T:
-        """Internal function to be decorated with rate limiting and retrying."""
+        """
+        Performs uncached chat completion call.
+
+        :param model_name: Provider model name.
+        :param conversation: OpenAI-format chat messages.
+        :param output_schema: ``str`` for text output or ``BaseModel`` subclass.
+        :param as_tool: If ``True``, enforces schema via tool-calling API.
+            If ``False``, uses ``beta.chat.completions.parse``.
+        :param kwargs: Supported generation options.
+        :returns: Raw text or parsed schema instance.
+        """
         logger.debug(f'Sending chat_completion API request with schema {output_schema.__name__}...')
         recognized_kwargs = {
             k: kwargs.pop(k, omit)
@@ -278,7 +328,14 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
-        """Internal function to be decorated with rate limiting and retrying."""
+        """
+        Performs uncached embedding call.
+
+        :param model_name: Provider embedding model name.
+        :param text: Input text to embed.
+        :param kwargs: Supported backend options.
+        :returns: Vector embedding.
+        """
         debug_text = text[:20].replace("\n", "\\n")
         logger.debug(f'Sending embed_text API request with text {debug_text}...')
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
@@ -295,7 +352,15 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
-        """Internal function to be decorated with rate limiting and retrying."""
+        """
+        Performs uncached rerank scoring call.
+
+        :param model_name: Provider reranker model name.
+        :param text_1: Source or query text.
+        :param text_2: Candidate texts.
+        :param kwargs: Supported backend options.
+        :returns: ``(index, score)`` tuples sorted by score descending.
+        """
         debug_text = text_1[:20].replace("\n", "\\n")
         logger.debug(f'Sending embed_text API request with text {debug_text}...')
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
@@ -310,12 +375,12 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
             "text_2": text_2,
         }
 
-        http_client = httpx.AsyncClient(timeout=60)  # TODO move to args
-        response = await http_client.post(
-            f"{self.client.base_url!s}/score",
-            headers=headers,
-            json=payload,
-        )
+        async with httpx.AsyncClient(timeout=60) as http_client:   # TODO move to args
+            response = await http_client.post(
+                f"{self.client.base_url!s}/score",
+                headers=headers,
+                json=payload,
+            )
         response.raise_for_status()
         data = response.json()
 

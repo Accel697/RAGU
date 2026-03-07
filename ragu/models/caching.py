@@ -13,7 +13,8 @@ from ragu.utils.ragu_utils import FLOATS, get_disk_cache
 T = TypeVar('T', BaseModel, str)
 
 class ResponseCachingMixin:
-    """Implements caching wrappers for abstract methods:
+    """
+    Implements caching wrappers for abstract methods:
 
     - `_cached_chat_completion` (wrapper)
       and `_uncached_chat_completion` (abstract)
@@ -104,7 +105,7 @@ class ResponseCachingMixin:
 
         kwargs are here to add custom arguments that will also be cached
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     async def _cached_embed_text(
         self,
@@ -148,11 +149,12 @@ class ResponseCachingMixin:
         text: str,
         **kwargs: Any,
     ) -> list[float] | FLOATS:
-        """Abstract method to cache.
+        """
+        Abstract method to cache.
 
         kwargs are here to add custom arguments that will also be cached
         """
-        raise NotImplemented
+        raise NotImplementedError
 
     async def _cached_score(
         self,
@@ -200,8 +202,9 @@ class ResponseCachingMixin:
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
-        """Abstract method to cache.
+        """
+        Abstract method to cache.
 
         kwargs are here to add custom arguments that will also be cached
         """
-        raise NotImplemented
+        raise NotImplementedError

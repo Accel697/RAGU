@@ -2,6 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, TypeVar
 from typing_extensions import override
+from tqdm.asyncio import tqdm_asyncio
 
 from pydantic import BaseModel
 if TYPE_CHECKING:
@@ -25,10 +26,14 @@ class Scorer(ABC):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
-        """Scores text similarity with a list of other texts. Returns tuples
-        of (index, score) sorted by score in descending order.
-        
-        Subclasses may add more kwargs."""
+        """
+        Scores ``text_1`` against candidate texts in ``text_2`` list.
+
+        :param text_1: Source or query text.
+        :param text_2: Candidate texts to score against ``text_1``.
+        :param kwargs: Backend-specific optional arguments.
+        :returns: List of ``(index, score)`` tuples sorted by score descending.
+        """
 
     async def batch_score(
         self,
@@ -36,7 +41,14 @@ class Scorer(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> list[list[tuple[int, float]]]:
-        """Parallel async processing of multiple score calls."""
+        """
+        Runs multiple `score` calls concurrently.
+
+        :param texts: List of ``(text_1, text_2_list)`` pairs.
+        :param desc: Optional tqdm progress description.
+        :param kwargs: Extra kwargs 
+        :returns: One scored result list per input item.
+        """
         logger.debug(f'Calling batch_score with size {len(texts)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.score(
@@ -49,8 +61,13 @@ class Scorer(ABC):
 
 
 class ScorerOpenAI(Scorer):
-    """Fixes model name and (possisbly) kwargs for CachedAsyncOpenAI client,
-    to match Scorer interface.
+    """
+    Adapts :class:`CachedAsyncOpenAI` to the :class:`Scorer` interface.
+
+    :param client: OpenAI-compatible backend client.
+    :param model_name: Model identifier passed to backend score calls.
+    :param dim: Reserved value currently stored but not used by this class.
+    :param kwargs: Default kwargs merged into each ``score`` call.
     
     Example:
     ```
@@ -80,6 +97,15 @@ class ScorerOpenAI(Scorer):
         text_2: list[str],
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        """
+        Forwards score request to backend using a fixed model name.
+
+        :param text_1: Source or query text.
+        :param text_2: Candidate texts to score.
+        :param kwargs: Per-call kwargs merged with constructor kwargs.
+            Per-call values override constructor defaults on conflicts.
+        :returns: List of ``(index, score)`` tuples sorted by score descending.
+        """
         return await self.client.score(
             model_name=self.model_name,
             text_1=text_1,
@@ -88,8 +114,11 @@ class ScorerOpenAI(Scorer):
         )
 
 class ScorerCrossEncoder(Scorer):
-    """Scorer (reranker) that uses Sentence Transformers
-    CrossEncoder to compute relevance scores.
+    """
+    Scorer (reranker) based on Sentence Transformers ``CrossEncoder``.
+
+    :param model: CrossEncoder-compatible model instance.
+    :param batch_size: Default batch size for inference.
     """
 
     def __init__(self, model: CrossEncoder, batch_size: int = 16):
@@ -104,6 +133,16 @@ class ScorerCrossEncoder(Scorer):
         batch_size: int | None = None,
         **kwargs: Any,
     ) -> list[tuple[int, float]]:
+        """
+        Scores candidates using batched CrossEncoder inference.
+
+        :param text_1: Source or query text.
+        :param text_2: Candidate texts to score.
+        :param batch_size: Optional per-call batch size override.
+        :param kwargs: Reserved for interface compatibility.
+        :returns: ``(index, score)`` tuples where index maps to original
+            ``text_2`` position, sorted by score descending.
+        """
         pairs = [(text_1, doc) for doc in text_2]
         batch_generator = BatchGenerator(pairs, batch_size=batch_size or self.batch_size)
         

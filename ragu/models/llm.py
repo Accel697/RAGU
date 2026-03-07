@@ -24,8 +24,14 @@ class LLM(ABC):
         output_schema: type[T] = str,
         **kwargs: Any,
     ) -> T:
-        """Returns LLM response, in form or string or BaseModel. Subclasses
-        may add more kwargs, such as temperature.
+        """
+        Returns one chat completion response.
+
+        :param conversation: OpenAI-format conversation messages.
+        :param output_schema: ``str`` for plain text or ``BaseModel`` subclass
+            for structured output.
+        :param kwargs: Backend-specific options (for example temperature).
+        :returns: Response value as plain text or validated schema instance.
         """
 
     async def batch_chat_completion(
@@ -35,7 +41,15 @@ class LLM(ABC):
         desc: str | None = None,
         **kwargs: Any,
     ) -> Sequence[T]:
-        """Parallel async processing of multiple chat_completion calls."""
+        """
+        Runs multiple :meth:`chat_completion` calls concurrently.
+
+        :param conversations: List of conversation message lists.
+        :param output_schema: Output schema applied to each call.
+        :param desc: Optional tqdm progress description.
+        :param kwargs: Extra kwargs forwarded to each call.
+        :returns: Responses in the same order as input conversations.
+        """
         logger.debug(f'Calling batch_chat_completion with size {len(conversations)}')
         return await tqdm_asyncio.gather(*[ # type: ignore
             self.chat_completion(
@@ -49,24 +63,28 @@ class LLM(ABC):
 
 
 class LLMOpenAI(LLM):
-    """Fixes model name and (possisbly) kwargs for CachedAsyncOpenAI client,
-    to match LLM interface.
-    
-    Example:
-    ```
-    llm = LLMOpenAI(
-        client=CachedAsyncOpenAI(),
-        model_name='gpt-5',
-    )
-    ```
-    """
-
+    """Adapts :class:`CachedAsyncOpenAI` to the :class:`LLM` interface."""
     def __init__(
         self,
         client: CachedAsyncOpenAI,
         model_name: str,
         **kwargs: Any,
     ):
+        """
+        Adapts :class:`CachedAsyncOpenAI` to the :class:`LLM` interface.
+
+        :param client: OpenAI-compatible backend client.
+        :param model_name: Model identifier passed to backend calls.
+        :param kwargs: Default kwargs merged into each ``chat_completion`` call.
+        
+        Example:
+        ```
+        llm = LLMOpenAI(
+            client=CachedAsyncOpenAI(),
+            model_name='gpt-5',
+        )
+        ```
+        """
         self.client = client
         self.model_name = model_name
         self.kwargs = kwargs
@@ -78,6 +96,15 @@ class LLMOpenAI(LLM):
         output_schema: type[T] = str,
         **kwargs: Any,
     ) -> T:
+        """
+        Forwards chat completion request.
+
+        :param conversation: OpenAI-format conversation messages.
+        :param output_schema: ``str`` or ``BaseModel`` subclass.
+        :param kwargs: Per-call kwargs merged with constructor kwargs.
+            Per-call values override constructor defaults on conflicts.
+        :returns: Response value as plain text or validated schema instance.
+        """
         return await self.client.chat_completion(
             model_name=self.model_name,
             conversation=conversation,
