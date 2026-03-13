@@ -83,6 +83,7 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         rate_max_per_minute: int | None = None,
         rate_max_simultaneous: int | None = None,
         retry_times_sec: Sequence[float] | None = None,
+        max_completion_tokens: int | None = None,
         cache: MutableMapping[str, Any] | str | Path | None = None,
         cache_prefix: str = 'openai',
         debug_errors_storage: MutableMapping[str, Any] | str | Path | None = None,
@@ -98,12 +99,16 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
         :param rate_max_per_minute: Maximum number of requests per minute.
         :param rate_max_simultaneous: Maximum number of concurrent requests.
         :param retry_times_sec: Retry wait schedule in seconds, e.g. ``(4, 8)``.
+        :param max_completion_tokens: Maximum number of tokens in the completion.
+            Passed to ``max_completion_tokens`` in API calls. Useful when
+            structured output parsing fails due to length limits.
         :param cache: Optional cache mapping or path accepted by
             :class:`ResponseCachingMixin`.
         :param cache_prefix: Prefix included in cache keys.
         :param debug_errors_storage: Optional mapping/path to store failing call
             arguments for debugging.
         """
+        self.max_completion_tokens = max_completion_tokens
         self.client = client or AsyncOpenAI(
             base_url=base_url,
             api_key=api_key,
@@ -263,6 +268,8 @@ class CachedAsyncOpenAI(ResponseCachingMixin):
             for k in ['temperature', 'top_p']
         }
         assert not kwargs, f'Guard triggered: add this to supported kwargs: {kwargs}'
+        if self.max_completion_tokens is not None:
+            recognized_kwargs['max_completion_tokens'] = self.max_completion_tokens
         if issubclass(output_schema, str):
             response = cast(ChatCompletion, await self.client.chat.completions.create(
                 model=model_name,
