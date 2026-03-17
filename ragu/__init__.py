@@ -15,6 +15,7 @@ from ragu.common.global_parameters import Settings
 from ragu.search_engine import (
     LocalSearchEngine,
     GlobalSearchEngine,
+    MixSearchEngine,
     NaiveSearchEngine,
     QueryPlanEngine
 )
@@ -22,6 +23,7 @@ from ragu.search_engine import (
 # Default extractors
 from ragu.triplet import (
     ArtifactsExtractorLLM,
+    TwoStageArtifactsExtractorLLM,
     RaguLmArtifactExtractor
 )
 
@@ -37,9 +39,11 @@ __all__ = [
     "StorageArguments",
     "LocalSearchEngine",
     "GlobalSearchEngine",
+    "MixSearchEngine",
     "NaiveSearchEngine",
     "QueryPlanEngine",
     "ArtifactsExtractorLLM",
+    "TwoStageArtifactsExtractorLLM",
     "RaguLmArtifactExtractor",
     "Env",
     "Settings",
