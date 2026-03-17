@@ -6,7 +6,12 @@ from pydantic import BaseModel
 from ragu.common.base import RaguGenerativeModule
 from ragu.common.prompts.default_models import GlobalSearchContextModel
 from ragu.models.llm import LLM
-from ragu.search_engine.types import NaiveSearchResult, LocalSearchResult
+from ragu.search_engine.types import (
+    GlobalSearchResult,
+    LocalSearchResult,
+    MixSearchResult,
+    NaiveSearchResult,
+)
 from ragu.utils.ragu_utils import always_get_an_event_loop
 
 
@@ -28,7 +33,12 @@ class BaseEngine(RaguGenerativeModule, ABC):
         self.llm = llm
 
     @abstractmethod
-    async def a_search(self, query, *args, **kwargs) -> NaiveSearchResult | LocalSearchResult | GlobalSearchContextModel:
+    async def a_search(
+        self,
+        query,
+        *args,
+        **kwargs,
+    ) -> Any:
         """
         Retrieve context relevant to a query.
 
@@ -59,7 +69,12 @@ class BaseEngine(RaguGenerativeModule, ABC):
             self.a_query(query)
         )
 
-    async def search(self, query, *args, **kwargs) -> NaiveSearchResult | LocalSearchResult | GlobalSearchContextModel:
+    async def search(
+        self,
+        query,
+        *args,
+        **kwargs,
+    ) -> NaiveSearchResult | LocalSearchResult | GlobalSearchResult | GlobalSearchContextModel | MixSearchResult:
         """
         Synchronous wrapper for ``a_search``.
 
