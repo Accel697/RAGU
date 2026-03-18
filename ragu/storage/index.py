@@ -163,6 +163,8 @@ class Index:
 
         # Graph storage
         self.graph_backend = arguments.graph_backend_storage(
+            node_cls=Entity,
+            edge_cls=Relation,
             **graph_kwargs
         )
 

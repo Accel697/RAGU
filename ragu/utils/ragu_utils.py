@@ -1,21 +1,22 @@
 import asyncio
+import functools
+import logging
+import time
 from collections.abc import Awaitable, Collection, MutableMapping
 from contextlib import AbstractAsyncContextManager, AsyncExitStack
-import functools
+from dataclasses import is_dataclass, asdict
 from hashlib import md5
-import logging
 from pathlib import Path
-import time
-from typing import Callable, Any, TypeVar, cast
+from typing import Any
+from typing import Callable, TypeVar, cast
 from typing import List
 
-from diskcache import Index # pyright: ignore[reportMissingTypeStubs]
 import loguru
 import numpy as np
 import numpy.typing as npt
+from diskcache import Index  # pyright: ignore[reportMissingTypeStubs]
 
 from ragu.common.logger import logger
-
 
 FLOATS = npt.NDArray[np.floating[Any]]
 """A typization for numpy array of floats"""
@@ -141,3 +142,31 @@ def read_text_from_files(directory: str | Path, file_extensions: Collection[str]
 
     return texts
 
+def serialize(obj: Any) -> Any:
+    if obj is None or isinstance(obj, (int, float, str, bool)):
+        return obj
+
+    if is_dataclass(obj):
+        return {k: serialize(v) for k, v in asdict(obj).items()}
+
+    if isinstance(obj, dict):
+        return {serialize(k): serialize(v) for k, v in obj.items()}
+
+    if isinstance(obj, (list, tuple, set)):
+        return [serialize(v) for v in obj]
+
+    if hasattr(obj, "__dict__"):
+        return {
+            k: serialize(v)
+            for k, v in vars(obj).items()
+            if not k.startswith("_")  # опционально
+        }
+
+    if hasattr(obj, "__slots__"):
+        return {
+            slot: serialize(getattr(obj, slot))
+            for slot in obj.__slots__
+            if hasattr(obj, slot)
+        }
+
+    return str(obj)

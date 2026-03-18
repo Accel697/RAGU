@@ -26,6 +26,7 @@ from typing import List, TypedDict
 
 import numpy as np
 
+from ragu.storage.types import Edge, Node
 from ragu.utils.ragu_utils import compute_mdhash_id
 
 
@@ -35,7 +36,7 @@ class ClusterInfo(TypedDict):
 
 
 @dataclass(slots=True)
-class Entity:
+class Entity(Node):
     """
     Represents a semantic entity (graph node).
 
@@ -87,7 +88,7 @@ class EntityEmbedding:
 
 
 @dataclass(slots=True)
-class Relation:
+class Relation(Edge):
     """
     Represents a directed relation between two entities.
 

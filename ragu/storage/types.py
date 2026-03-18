@@ -2,7 +2,36 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Optional
 
-from ragu.utils.ragu_utils import FLOATS, compute_mdhash_id
+from ragu.utils.ragu_utils import FLOATS, compute_mdhash_id, serialize
+
+
+class Node:
+    """
+    Base graph node type for storage adapters.
+
+    Subclasses are expected to be dataclasses and define an ``id`` field.
+    """
+
+    id: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return serialize(self)
+
+
+class Edge:
+    """
+    Base graph edge type for storage adapters.
+
+    Subclasses are expected to be dataclasses and define ``id``,
+    ``subject_id``, and ``object_id`` fields.
+    """
+
+    id: str
+    subject_id: str
+    object_id: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return serialize(self)
 
 
 @dataclass(slots=True)
