@@ -149,6 +149,35 @@ Provide the answer in the following language: {{ language }}
 Return the result as valid JSON matching the provided schema.
 """
 
+DEFAULT_MIX_SEARCH_PROMPT = """
+**Goal**
+Answer the query by combining information gathered from multiple search engines.
+
+**Instructions**
+1. Compare the {{ section_label }}s from different engines before answering.
+2. Prefer information that is supported by multiple engines.
+3. If the engines conflict, mention the conflict briefly and avoid unsupported claims.
+4. If you do not know the correct answer, explicitly state that.
+5. Do not include unsupported information.
+6. Treat the provided material as synthesized engine output; do not assume every engine used the same retrieval strategy.
+
+Query: {{ query }}
+Engine {{ section_label }}s:
+{{ context }}
+
+Provide the answer in the following language: {{ language }}
+Return the result as valid JSON matching the provided schema.
+"""
+
+DEFAULT_MIX_SEARCH_CONTEXT_PROMPT = """
+{%- for result in payload.entries %}
+{%- if result is not none %}
+**Engine {{ loop.index }} {{ section_label }}**
+{{ result }}
+{% endif %}
+{%- endfor %}
+"""
+
 DEFAULT_CLUSTER_SUMMARIZER_PROMPT = """
 **Goal**
 You are given a list of descriptions.  
