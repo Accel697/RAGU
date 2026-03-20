@@ -13,7 +13,11 @@ from ragu.storage.kv_storage_adapters.json_storage import JsonKVStorage
 def temp_graph_storage(tmp_path):
     """Create a temporary graph storage."""
     storage_file = tmp_path / "test_graph.gml"
-    return NetworkXStorage(filename=str(storage_file))
+    return NetworkXStorage(
+        filename=str(storage_file),
+        node_cls=Entity,
+        edge_cls=Relation,
+    )
 
 
 @pytest.fixture

@@ -4,18 +4,21 @@ from pathlib import Path
 import pytest
 
 from ragu.common.global_parameters import Settings
-from ragu.embedder.base_embedder import BaseEmbedder
+from ragu.models.embedder import Embedder
 from ragu.graph.graph_builder_pipeline import BuilderArguments
 from ragu.graph.knowledge_graph import KnowledgeGraph
-from ragu.utils.ragu_utils import FLOATS
 
 
-class DummyEmbedder(BaseEmbedder):
+class DummyEmbedder(Embedder):
     def __init__(self, dim: int = 3072):
-        super().__init__(dim=dim)
+        self._dim = dim
 
-    async def embed(self, texts: list[str]) -> list[list[float]] | FLOATS:
-        return [[0.001] * self.dim for _ in texts]
+    @property
+    def dim(self) -> int:
+        return self._dim
+
+    async def embed_text(self, text: str, **kwargs) -> list[float]:
+        return [0.001] * self.dim
 
 
 @pytest.fixture

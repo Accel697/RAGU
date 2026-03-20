@@ -9,9 +9,7 @@ from ragu.storage.types import EmbeddingHit
 
 
 def _make_embedder_mock():
-    mock = AsyncMock()
-    mock.return_value = [[0.0] * 3]
-    return mock
+    return SimpleNamespace(embed_text=AsyncMock(return_value=[0.0] * 3))
 
 
 @pytest.mark.asyncio
@@ -25,11 +23,11 @@ async def test_naive_search_rerank_and_rerank_top_k(real_kg, kg_fixture_ids):
         ]
     )
 
-    reranker = SimpleNamespace(rerank=AsyncMock(return_value=[(1, 0.95), (0, 0.11)]))
-    client = SimpleNamespace(generate=AsyncMock())
+    reranker = SimpleNamespace(score=AsyncMock(return_value=[(1, 0.95), (0, 0.11)]))
+    llm = SimpleNamespace(chat_completion=AsyncMock())
 
     engine = NaiveSearchEngine(
-        llm=client,
+        llm=llm,
         knowledge_graph=real_kg,
         embedder=_make_embedder_mock(),
         reranker=reranker
@@ -47,7 +45,7 @@ async def test_naive_search_rerank_and_rerank_top_k(real_kg, kg_fixture_ids):
 async def test_naive_search_empty_returns_empty_result(real_kg):
     real_kg.index.chunk_vector_db.query = AsyncMock(return_value=[])
     engine = NaiveSearchEngine(
-        llm=SimpleNamespace(generate=AsyncMock()),
+        llm=SimpleNamespace(chat_completion=AsyncMock()),
         knowledge_graph=real_kg,
         embedder=_make_embedder_mock(),
     )
@@ -60,9 +58,9 @@ async def test_naive_search_empty_returns_empty_result(real_kg):
 
 @pytest.mark.asyncio
 async def test_naive_query_uses_llm_response(monkeypatch):
-    client = SimpleNamespace(generate=AsyncMock(return_value=["naive-answer"]))
+    llm = SimpleNamespace(chat_completion=AsyncMock(return_value="naive-answer"))
     kg = SimpleNamespace(index=SimpleNamespace(chunk_vector_db=SimpleNamespace(query=AsyncMock(return_value=[]))))
-    engine = NaiveSearchEngine(llm=client, knowledge_graph=kg, embedder=_make_embedder_mock())
+    engine = NaiveSearchEngine(llm=llm, knowledge_graph=kg, embedder=_make_embedder_mock())
     engine.truncation = lambda s: s
     engine.a_search = AsyncMock(return_value=NaiveSearchResult())
 
@@ -70,7 +68,7 @@ async def test_naive_query_uses_llm_response(monkeypatch):
     monkeypatch.setattr(
         naive_module,
         "render",
-        lambda messages, **kwargs: [[{"role": "user", "content": "prompt"}]],
+        lambda messages, **kwargs: [SimpleNamespace(to_openai=lambda: [{"role": "user", "content": "prompt"}])],
     )
     monkeypatch.setattr(
         engine,

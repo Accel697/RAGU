@@ -4,21 +4,24 @@ from typing import Dict, List, Optional
 
 import pytest
 
-from ragu.embedder.base_embedder import BaseEmbedder
+from ragu.models.embedder import Embedder
 from ragu.storage.types import Embedding, EmbeddingHit
 from ragu.storage.vdb_storage_adapters.nano_vdb import NanoVectorDBStorage
-from ragu.utils.ragu_utils import FLOATS
 
 
-class DummyEmbedder(BaseEmbedder):
+class DummyEmbedder(Embedder):
     def __init__(self, dim: int, vector_by_text: Dict[str, Optional[List[float]]]):
-        super().__init__(dim=dim)
+        self._dim = dim
         self.vector_by_text = vector_by_text
 
-    async def embed(self, texts: list[str]) -> list[list[float]] | FLOATS:
-        if isinstance(texts, str):
-            texts = [texts]
-        return [self.vector_by_text[text] for text in texts]
+    @property
+    def dim(self) -> int:
+        return self._dim
+
+    async def embed_text(self, text: str, **kwargs) -> list[float]:
+        vector = self.vector_by_text.get(text)
+        assert vector is not None
+        return vector
 
 
 def _make_embeddings(data: Dict[str, dict], embedder: DummyEmbedder) -> List[Embedding]:
@@ -72,11 +75,11 @@ async def test_upsert_empty_returns_empty_list(tmp_path):
 
     inserted = await vdb.upsert([])
 
-    assert inserted == []
+    assert inserted is None
 
 
 @pytest.mark.asyncio
-async def test_upsert_skips_none_embeddings(tmp_path):
+async def test_upsert_rejects_none_embeddings(tmp_path):
     embedder = DummyEmbedder(
         dim=3,
         vector_by_text={
@@ -92,14 +95,8 @@ async def test_upsert_skips_none_embeddings(tmp_path):
         {"id-keep": {"content": "keep"}, "id-drop": {"content": "drop"}},
         embedder,
     )
-    await vdb.upsert(embeddings)
-
-    query_vector = embedder.vector_by_text["query-keep"]
-    results = await vdb.query(Embedding(vector=query_vector), top_k=10)
-    ids = [r.id for r in results]
-
-    assert "id-keep" in ids
-    assert "id-drop" not in ids
+    with pytest.raises(AssertionError):
+        await vdb.upsert(embeddings)
 
 
 @pytest.mark.asyncio

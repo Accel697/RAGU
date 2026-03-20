@@ -22,10 +22,12 @@ async def test_entity_summarizer_run_empty_returns_empty_list():
 
 @pytest.mark.asyncio
 async def test_entity_summarizer_run_without_llm_deduplicates_entities():
+    client = AsyncMock()
     summarizer = EntitySummarizer(
-        llm=None,
+        llm=client,
         use_llm_summarization=False,
         use_clustering=False,
+        embedder=AsyncMock(),
         summarize_only_if_more_than=1,
     )
     entities = [
@@ -69,20 +71,21 @@ async def test_entity_summarizer_run_without_llm_deduplicates_entities():
 @pytest.mark.asyncio
 async def test_entity_summarizer_llm_path_updates_description(monkeypatch):
     client = AsyncMock()
-    client.generate = AsyncMock(
+    client.batch_chat_completion = AsyncMock(
         return_value=[EntityDescriptionModel(entity_name="Alice", description="LLM summary")]
     )
     summarizer = EntitySummarizer(
         llm=client,
         use_llm_summarization=True,
         use_clustering=False,
+        embedder=AsyncMock(),
         summarize_only_if_more_than=1,
     )
 
     monkeypatch.setattr(
         summarizer,
         "get_prompt",
-        lambda _: SimpleNamespace(messages=[UserMessage(content="{{ entity }}")], pydantic_model=None),
+        lambda _: SimpleNamespace(messages=[UserMessage(content="{{ entity }}")], pydantic_model=EntityDescriptionModel),
     )
 
     def _fake_render(messages, **kwargs):
@@ -115,7 +118,7 @@ async def test_entity_summarizer_llm_path_updates_description(monkeypatch):
     assert len(result) == 1
     assert result[0].entity_name == "Alice"
     assert result[0].description == "LLM summary"
-    client.generate.assert_awaited_once()
+    client.batch_chat_completion.assert_awaited_once()
 
 
 def test_relation_summarizer_requires_client_when_llm_enabled():
@@ -169,8 +172,9 @@ def test_relation_group_relations_merges_duplicates():
 
 @pytest.mark.asyncio
 async def test_relation_summarizer_run_without_llm_deduplicates_relations():
+    client = AsyncMock()
     summarizer = RelationSummarizer(
-        llm=None,
+        llm=client,
         use_llm_summarization=False,
         summarize_only_if_more_than=1,
     )
@@ -225,7 +229,7 @@ async def test_relation_summarizer_run_without_llm_deduplicates_relations():
 @pytest.mark.asyncio
 async def test_relation_summarizer_llm_path_updates_description(monkeypatch):
     client = AsyncMock()
-    client.generate = AsyncMock(
+    client.batch_chat_completion = AsyncMock(
         return_value=[
             RelationDescriptionModel(
                 subject_name="ent-1",
@@ -243,7 +247,7 @@ async def test_relation_summarizer_llm_path_updates_description(monkeypatch):
     monkeypatch.setattr(
         summarizer,
         "get_prompt",
-        lambda _: SimpleNamespace(messages=[UserMessage(content="{{ relation }}")], pydantic_model=None),
+        lambda _: SimpleNamespace(messages=[UserMessage(content="{{ relation }}")], pydantic_model=RelationDescriptionModel),
     )
 
     def _fake_render(messages, **kwargs):
@@ -281,4 +285,4 @@ async def test_relation_summarizer_llm_path_updates_description(monkeypatch):
 
     assert len(result) == 1
     assert result[0].description == "LLM relation summary"
-    client.generate.assert_awaited_once()
+    client.batch_chat_completion.assert_awaited_once()
