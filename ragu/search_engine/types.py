@@ -43,7 +43,7 @@ class LocalSearchResult:
             {%- if summaries %}
             **Summary**
             {%- for s in summaries %}
-            {{ s }}
+            {{ s.summary }}
             {%- endfor %}
             {% endif %}
             

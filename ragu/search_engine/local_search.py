@@ -8,12 +8,14 @@ from ragu.common.global_parameters import Settings
 from ragu.graph.knowledge_graph import KnowledgeGraph
 from ragu.models.embedder import Embedder
 from ragu.models.llm import LLM
+from ragu.models.scorer import Scorer
 from ragu.search_engine.base_engine import BaseEngine
 from ragu.search_engine.search_functional import (
     _find_most_related_edges_from_entities,
     _find_most_related_text_unit_from_entities,
     _find_documents_id,
     _find_most_related_community_from_entities,
+    _rerank_items,
 )
 from ragu.search_engine.types import LocalSearchResult
 from ragu.storage import Embedding
@@ -42,6 +44,7 @@ class LocalSearchEngine(BaseEngine):
         llm: LLM,
         knowledge_graph: KnowledgeGraph,
         embedder: Embedder,
+        reranker: Scorer | None = None,
         max_context_length: int = 30_000,
         tokenizer_backend: str = "tiktoken",
         tokenizer_model: str = "gpt-4",
@@ -55,6 +58,7 @@ class LocalSearchEngine(BaseEngine):
         :param llm: LLM used to generate the final answer.
         :param knowledge_graph: Knowledge graph used for entity and relation retrieval.
         :param embedder: Embedding model used for similarity search.
+        :param reranker: Optional reranker used to reorder retrieved context sections.
         :param max_context_length: Max tokens allowed for the final context (after truncation).
         :param tokenizer_backend: Tokenizer backend used for token counting/truncation.
         :param tokenizer_model: Model name used by the tokenizer backend.
@@ -71,6 +75,7 @@ class LocalSearchEngine(BaseEngine):
 
         self.knowledge_graph = knowledge_graph
         self.embedder = embedder
+        self.reranker = reranker
         self.language = language if language else Settings.language
 
     @override
@@ -97,6 +102,35 @@ class LocalSearchEngine(BaseEngine):
         relevant_chunks = [chunk for chunk in relevant_chunks if chunk is not None]
 
         summaries = await _find_most_related_community_from_entities(entities, self.knowledge_graph)
+        summaries = [summary for summary in summaries if summary is not None]
+
+        entities = await _rerank_items(
+            query,
+            entities,
+            lambda entity: f"{entity.entity_name}\n{entity.entity_type}\n{entity.description}",
+            self.reranker,
+        )
+        relations = await _rerank_items(
+            query,
+            relations,
+            lambda relation: (
+                f"{relation.subject_name}\n{relation.relation_type}\n"
+                f"{relation.object_name}\n{relation.description}"
+            ),
+            self.reranker,
+        )
+        summaries = await _rerank_items(
+            query,
+            summaries,
+            lambda community_summary: community_summary.summary,
+            self.reranker,
+        )
+        relevant_chunks = await _rerank_items(
+            query,
+            relevant_chunks,
+            lambda chunk: chunk.content,
+            self.reranker,
+        )
 
         documents_id = await _find_documents_id(entities)
 
