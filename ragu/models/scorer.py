@@ -82,13 +82,11 @@ class ScorerOpenAI(Scorer):
         self,
         client: CachedAsyncOpenAI,
         model_name: str,
-        dim: int,
         **kwargs: Any,
     ):
         self.client = client
         self.model_name = model_name
         self.kwargs = kwargs
-        self._dim = dim
     
     @override
     async def score(
