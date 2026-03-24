@@ -30,8 +30,8 @@ dependencies = [
 [project.optional-dependencies]
 local = [
     "sentence-transformers>=5.1.1",
-    "transformers>=4.57.0",
-    "smart_chunker @ git+https://github.com/AsphodelRem/smart_chunker.git",
+    "transformers>=4.57.1",
+    "smart-chunker>=0.0.5",
 ]
 
 test = [
