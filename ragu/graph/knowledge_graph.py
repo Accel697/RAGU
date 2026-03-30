@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Self
+from typing import List, Optional
 
 from ragu.chunker.base_chunker import BaseChunker
 from ragu.chunker.types import Chunk
@@ -86,12 +86,12 @@ class KnowledgeGraph:
         self.remove_isolated_nodes = self.builder_settings.remove_isolated_nodes
         self.vectorize_chunks = self.builder_settings.vectorize_chunks
 
-    async def build_from_docs(self, docs: List[str]) -> Self:
+    async def build_from_docs(self, docs: List[str]) -> "KnowledgeGraph":
         """
         Build graph and vector context from a list of input documents.
 
         :param docs: Input documents to process.
-        :return: Self for method chaining.
+        :return: "KnowledgeGraph" for method chaining.
         """
         chunks = self.pipeline.chunker.split(docs) if self.pipeline.chunker else \
             [Chunk(doc, i, doc_id=f"doc_{i}") for i, doc in enumerate(docs)]
