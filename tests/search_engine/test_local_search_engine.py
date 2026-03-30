@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from ragu.chunker.types import Chunk
-from ragu.graph.types import Entity, Relation
+from ragu.graph.types import Entity, Relation, CommunitySummary
 from ragu.search_engine.local_search import LocalSearchEngine
 from ragu.search_engine.types import LocalSearchResult
 from ragu.storage.types import EmbeddingHit
@@ -63,7 +63,7 @@ async def test_local_search_reranks_entities_relations_summaries_and_chunks(monk
     )
     chunk_a = Chunk(content="chunk alpha", chunk_order_idx=0, doc_id="doc-a")
     chunk_b = Chunk(content="chunk beta", chunk_order_idx=1, doc_id="doc-b")
-    summaries = ["summary alpha", "summary beta"]
+    summaries = [CommunitySummary(summary="summary alpha", id="123"), CommunitySummary(summary="summary beta", id="345")]
 
     real_kg.index.entity_vector_db.query = AsyncMock(
         return_value=[
@@ -101,7 +101,7 @@ async def test_local_search_reranks_entities_relations_summaries_and_chunks(monk
 
     assert [entity.id for entity in result.entities] == [entity_b.id, entity_a.id]
     assert [relation.id for relation in result.relations] == [relation_b.id, relation_a.id]
-    assert result.summaries == ["summary beta", "summary alpha"]
+    assert [c.summary for c in result.summaries] == ["summary beta", "summary alpha"]
     assert [chunk.id for chunk in result.chunks] == [chunk_b.id, chunk_a.id]
     assert result.documents_id == ["doc-b", "doc-a"]
 
