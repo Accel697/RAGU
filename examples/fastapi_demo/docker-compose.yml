@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  knb-demo:
+    image: apache/age:release_PG15_1.6.0
+    container_name: knb-demo
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - age_data:/var/lib/postgresql/data
+
+  vllm-demo:
+    image: ollama/ollama:latest
+    container_name: vllm-demo
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=2
+      - OLLAMA_KEEP_ALIVE=5m
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "127.0.0.1:11434:11434"
+
+  grg-demo:
+    build:
+      context: ../..
+      dockerfile: examples/fastapi_demo/Dockerfile
+    container_name: grg-demo
+    depends_on:
+      - knb-demo
+      - vllm-demo
+    environment:
+      AGE_HOST: knb-demo
+      AGE_PORT: "5432"
+      AGE_DB: postgres
+      AGE_USER: postgres
+      AGE_PASSWORD: postgres
+      GRAPH_NAME: ragu_graph
+      OLLAMA_BASE_URL: http://vllm-demo:11434/v1
+      LLM_MODEL: qwen2.5:3b
+      EMBED_MODEL: nomic-embed-text:latest
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ragu_working_dir:/app/ragu_working_dir
+      - llm_cache:/app/llm_cache
+
+volumes:
+  age_data:
+  ollama_data:
+  ragu_working_dir:
+  llm_cache:
