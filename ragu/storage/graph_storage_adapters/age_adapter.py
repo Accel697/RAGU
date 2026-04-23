@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional, Set, Type, TypeVar
 
@@ -78,7 +79,10 @@ class AgeGraphStorage(BaseGraphStorage[AgeNode, AgeEdge]):
 
     def _escape(self, value: Any) -> str:
         if isinstance(value, str):
-            return "'" + value.replace("\\", "\\\\").replace("'", "''") + "'"
+            # Alternative: replace with Unicode lookalike: value.replace("'", "ʼ")
+            value = value.replace("'", "")
+            value = value.replace("\\", "\\\\")
+            return "'" + value + "'"
         elif isinstance(value, bool):
             return "true" if value else "false"
         elif value is None:
@@ -213,10 +217,21 @@ class AgeGraphStorage(BaseGraphStorage[AgeNode, AgeEdge]):
 
     @override
     async def upsert_edges(self, edges: Iterable[AgeEdge]) -> None:
+        EDGE_LABEL = "RELATED_TO"
+
         for edge in edges:
-            props_parts = [f"id: {self._escape(edge.id)}"] + [f"{k}: {self._escape(v)}" for k, v in
-                                                              edge.properties.items()]
-            query = f"MATCH (a {{id: {self._escape(edge.subject_id)}}}) MATCH (b {{id: {self._escape(edge.object_id)}}}) MERGE (a)-[r:`{edge.label}` {{{', '.join(props_parts)}}}]-(b)"
+            props_parts = [f"id: {self._escape(edge.id)}"]
+
+            for k, v in edge.properties.items():
+                props_parts.append(f"{k}: {self._escape(v)}")
+
+            props_parts.append(f"relation_type: {self._escape(str(edge.label))}")
+
+            query = (
+                f"MATCH (a {{id: {self._escape(edge.subject_id)}}}) "
+                f"MATCH (b {{id: {self._escape(edge.object_id)}}}) "
+                f"MERGE (a)-[r:`{EDGE_LABEL}` {{{', '.join(props_parts)}}}]-(b)"
+            )
             await self._run_cypher(query, fetch=False)
 
     @override
