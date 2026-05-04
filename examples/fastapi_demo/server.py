@@ -53,7 +53,7 @@ class EdgeRecord(BaseModel):
 
 def get_ollama_client() -> CachedAsyncOpenAI:
     """Create Ollama client compatible with RAGU OpenAI wrapper"""
-    base_url = os.getenv("OLLAMA_BASE_URL", "http://vllm-demo:11434/v1")
+    base_url = os.getenv("OLLAMA_BASE_URL")
     return CachedAsyncOpenAI(
         base_url=base_url,
         api_key="ollama",
@@ -80,20 +80,20 @@ async def init_ragu_components() -> None:
     global storage, knowledge_graph, local_search
 
     storage = AgeGraphStorage(
-        host=os.getenv("AGE_HOST", "knb-demo"),
-        port=int(os.getenv("AGE_PORT", "5432")),
-        database=os.getenv("AGE_DB", "postgres"),
-        user=os.getenv("AGE_USER", "postgres"),
-        password=os.getenv("AGE_PASSWORD", "postgres"),
-        graph_name=os.getenv("GRAPH_NAME", "ragu_graph"),
+        host=os.getenv("AGE_HOST"),
+        port=int(os.getenv("AGE_PORT")),
+        database=os.getenv("AGE_DB"),
+        user=os.getenv("AGE_USER"),
+        password=os.getenv("AGE_PASSWORD"),
+        graph_name=os.getenv("GRAPH_NAME"),
     )
     await storage.index_start_callback()
     logger.info("Connected to Apache AGE")
 
     client = get_ollama_client()
-    llm_model = os.getenv("LLM_MODEL", "qwen2.5:3b")
-    embed_model = os.getenv("EMBED_MODEL", "nomic-embed-text:latest")
-    ollama_api = os.getenv("OLLAMA_BASE_URL", "http://vllm-demo:11434").rstrip("/v1")
+    llm_model = os.getenv("LLM_MODEL")
+    embed_model = os.getenv("EMBED_MODEL")
+    ollama_api = os.getenv("OLLAMA_API").rstrip("/v1")
 
     await _pull_ollama_model(ollama_api, llm_model)
     await _pull_ollama_model(ollama_api, embed_model)

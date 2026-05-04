@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAGU Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --chat-bg: #ffffff; --user: #2563eb; --bot: #f1f5f9; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; height: 100vh; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 850px; background: var(--chat-bg); display: flex; flex-direction: column; height: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .header { padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 1.1rem; font-weight: 600; color: #0f172a; }
+        .clear-btn { background: none; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; color: #475569; font-size: 0.85rem; transition: 0.2s; }
+        .clear-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
+
+        #chat { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 0.95rem; word-wrap: break-word; }
+        .user { align-self: flex-end; background: var(--user); color: white; border-bottom-right-radius: 4px; }
+        .bot { align-self: flex-start; background: var(--bot); color: #1e293b; border-bottom-left-radius: 4px; }
+        .bot p { margin: 0 0 8px 0; } .bot p:last-child { margin: 0; }
+        .bot pre { background: #e2e8f0; padding: 8px; border-radius: 6px; overflow-x: auto; font-size: 0.9em; }
+
+        .input-area { padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #fff; }
+        .input-row { display: flex; gap: 12px; }
+        #input { flex: 1; padding: 12px 16px; border: 1px solid #cbd5e1; border-radius: 8px; outline: none; font-size: 1rem; }
+        #input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+        #send { padding: 12px 24px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        #send:disabled { background: #94a3b8; cursor: not-allowed; }
+
+        .typing { display: none; align-items: center; gap: 6px; padding: 8px 0; color: #64748b; font-size: 0.85rem; font-style: italic; }
+        .dot { width: 6px; height: 6px; background: #64748b; border-radius: 50%; animation: pulse 1.4s infinite ease-in-out; }
+        .dot:nth-child(1) { animation-delay: -0.32s; } .dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes pulse { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1> RAGU Knowledge Base</h1>
+        <button class="clear-btn" onclick="resetChat()">Очистить чат</button>
+    </div>
+    <div id="chat">
+        <div class="msg bot">Здравствуйте! Я готов ответить на ваши вопросы по базе знаний. Просто напишите ваш запрос</div>
+    </div>
+    <div class="input-area">
+        <div class="typing" id="loader"><div class="dot"></div><div class="dot"></div><div class="dot"></div>Генерация ответа...</div>
+        <div class="input-row">
+            <input type="text" id="input" placeholder="Введите вопрос..." autocomplete="off">
+            <button id="send">Отправить</button>
+        </div>
+    </div>
+</div>
+<script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const btn = document.getElementById('send');
+    const loader = document.getElementById('loader');
+    marked.setOptions({ breaks: true });
+
+    function add(text, type) {
+        const d = document.createElement('div');
+        d.className = `msg ${type}`;
+        d.innerHTML = type === 'bot' ? marked.parse(text) : text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function send() {
+        const q = input.value.trim();
+        if (!q) return;
+        add(q, 'user');
+        input.value = '';
+        input.disabled = btn.disabled = true;
+        loader.style.display = 'flex';
+
+        try {
+            const r = await fetch('/api/ask', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: q}) });
+            if (!r.ok) throw new Error();
+            const d = await r.json();
+            add(d.answer || 'Ответ пуст', 'bot');
+        } catch {
+            add('️ Ошибка соединения. Попробуйте позже', 'bot');
+        } finally {
+            input.disabled = btn.disabled = false;
+            loader.style.display = 'none';
+            input.focus();
+        }
+    }
+
+    function resetChat() {
+        chat.innerHTML = '<div class="msg bot">Чат очищен. Задайте новый вопрос</div>';
+    }
+
+    btn.addEventListener('click', send);
+    input.addEventListener('keypress', e => { if(e.key === 'Enter') send(); });
+</script>
+</body>
+</html>

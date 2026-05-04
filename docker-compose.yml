@@ -4,10 +4,12 @@ services:
   knb-demo:
     image: apache/age:release_PG15_1.6.0
     container_name: knb-demo
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
@@ -28,20 +30,23 @@ services:
 
   grg-demo:
     build:
-      context: ../..
+      context: .
       dockerfile: examples/fastapi_demo/Dockerfile
     container_name: grg-demo
+    env_file:
+      - .env
     depends_on:
       - knb-demo
       - vllm-demo
     environment:
       AGE_HOST: knb-demo
       AGE_PORT: "5432"
-      AGE_DB: postgres
-      AGE_USER: postgres
-      AGE_PASSWORD: postgres
-      GRAPH_NAME: ragu_graph
+      AGE_DB: ${DB_NAME}
+      AGE_USER: ${DB_USER}
+      AGE_PASSWORD: ${DB_PASSWORD}
+      GRAPH_NAME: ${GRAPH_NAME}
       OLLAMA_BASE_URL: http://vllm-demo:11434/v1
+      OLLAMA_API: http://vllm-demo:11434
       LLM_MODEL: qwen2.5:3b
       EMBED_MODEL: nomic-embed-text:latest
     ports:
@@ -49,6 +54,18 @@ services:
     volumes:
       - ragu_working_dir:/app/ragu_working_dir
       - llm_cache:/app/llm_cache
+        
+  web-demo:
+    build:
+      context: .
+      dockerfile: examples/webchat_demo/Dockerfile
+    container_name: web-demo
+    environment:
+      - RAGU_API_URL=http://grg-demo:8000
+    depends_on:
+      - grg-demo
+    ports:
+      - "8080:8080"
 
 volumes:
   age_data:
