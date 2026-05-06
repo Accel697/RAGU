@@ -65,7 +65,7 @@ def get_ollama_client() -> CachedAsyncOpenAI:
 
 
 async def _pull_ollama_model(api_url: str, model_name: str) -> None:
-    """Pull model into Ollama container if not present."""
+    """Pull model into Ollama container if not present"""
     async with httpx.AsyncClient(timeout=600) as client:
         try:
             logger.info(f"Pulling Ollama model: {model_name}")
@@ -190,11 +190,27 @@ async def load_data():
     if not knowledge_graph:
         return {"status": "error", "message": "Knowledge graph not initialized"}
 
-    base_path = Path("/app/data/ru")
-    if not base_path.exists() or not list(base_path.glob("*.txt")):
-        return {"status": "no_files", "message": "No .txt files found in data/ru"}
+    xdt_url = "http://xdt-demo:8081/collect"
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(xdt_url)
+            response.raise_for_status()
+            collected = response.json()
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to fetch from xdt_mgr: {e}"}
 
-    docs = read_text_from_files(str(base_path))
+    docs = []
+    for i, item in enumerate(collected):
+
+        raw = item.get("rawData") or item.get("raw_data") or item.get("RawData")
+
+
+        if raw and not str(raw).startswith("Error:"):
+            docs.append(str(raw))
+
+    if not docs:
+        return {"status": "no_data", "message": "No valid data received from sources"}
+
     await knowledge_graph.build_from_docs(docs)
 
     entities_saved = 0
@@ -250,7 +266,6 @@ async def load_data():
 
     return {
         "status": "ok",
-        "directory": str(base_path),
         "docs_processed": len(docs) if docs else 0,
         "entities_saved": entities_saved,
         "relations_saved": relations_saved
