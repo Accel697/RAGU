@@ -66,6 +66,16 @@ services:
       - grg-demo
     ports:
       - "8080:8080"
+      
+  xdt-demo:
+    build:
+      context: .
+      dockerfile: examples/xdt_demo/xdt_mgr/Dockerfile
+    container_name: xdt-demo
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+    ports:
+      - "8081:8081"
 
 volumes:
   age_data:
