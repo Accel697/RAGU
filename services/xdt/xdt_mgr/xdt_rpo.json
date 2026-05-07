@@ -1,0 +1,27 @@
+{
+  "sources": [
+    {
+      "name": "github",
+      "source_url": "https://github.com",
+      "fetch_method": "api",
+      "products": [
+        {
+          "name": "postgresql",
+          "releases_url": "https://github.com/postgres/postgres/tags"
+        },
+        {
+          "name": "redis",
+          "releases_url": "https://github.com/redis/redis/releases"
+        },
+        {
+          "name": "nginx",
+          "releases_url": "https://github.com/nginx/nginx/releases"
+        },
+        {
+          "name": "docker",
+          "releases_url": "https://github.com/moby/moby/releases"
+        }
+      ]
+    }
+  ]
+}
