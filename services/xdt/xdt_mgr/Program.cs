@@ -69,4 +69,4 @@ app.MapPost("/collect", async (IHttpClientFactory httpFactory) =>
 
 app.MapGet("/", () => "xdt_mgr is running. POST /collect to start collection.");
 
-app.Run("http://0.0.0.0:8081");
+app.Run("http://*:8081");

@@ -189,7 +189,7 @@ async def load_data():
     if not knowledge_graph:
         return {"status": "error", "message": "Knowledge graph not initialized"}
 
-    xdt_url = "http://xdt-demo:8081/collect"
+    xdt_url = "http://xdt:8081/collect"
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(xdt_url)
