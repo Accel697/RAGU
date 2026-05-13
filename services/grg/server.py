@@ -58,7 +58,7 @@ def get_ollama_client() -> CachedAsyncOpenAI:
         base_url=base_url,
         api_key="ollama",
         rate_min_delay=1,
-        rate_max_simultaneous=5,
+        rate_max_simultaneous=2,
         retry_times_sec=(1, 2, 2),
         cache="./llm_cache",
     )
@@ -98,12 +98,12 @@ async def init_ragu_components() -> None:
     await _pull_ollama_model(ollama_api, embed_model)
 
     llm = LLMOpenAI(client, model_name=llm_model)
-    embedder = EmbedderOpenAI(client, model_name=embed_model, dim=768)
+    embedder = EmbedderOpenAI(client, model_name=embed_model, dim=1024)
 
     Settings.storage_folder = "/app/ragu_working_dir"
     Settings.language = "russian"
 
-    chunker = SimpleChunker(max_chunk_size=1000)
+    chunker = SimpleChunker(max_chunk_size=300, overlap=30)
     artifact_extractor = ArtifactsExtractorLLM(llm=llm, do_validation=False)
     builder_args = BuilderArguments(
         use_llm_summarization=True,

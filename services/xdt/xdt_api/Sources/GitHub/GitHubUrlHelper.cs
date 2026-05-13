@@ -24,7 +24,7 @@ public static class GitHubUrlHelper
                 ? "tags" 
                 : "releases";
 
-            var apiUrl = $"{ApiBase}/repos/{owner}/{repo}/{endpoint}?per_page=60";
+            var apiUrl = $"{ApiBase}/repos/{owner}/{repo}/{endpoint}?per_page=30";
 
             return apiUrl;
         }

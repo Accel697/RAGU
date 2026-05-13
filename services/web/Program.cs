@@ -7,7 +7,7 @@ var raguUrl = Environment.GetEnvironmentVariable("RAGU_API_URL");
 builder.Services.AddHttpClient("RaguClient", client =>
 {
     client.BaseAddress = new Uri(raguUrl);
-    client.Timeout = TimeSpan.FromMinutes(2);
+    client.Timeout = TimeSpan.FromMinutes(10);
 });
 
 var app = builder.Build();
