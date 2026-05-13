@@ -8,5 +8,8 @@
     <ItemGroup>
         <ProjectReference Include="..\xdt_api\xdt_api.csproj" />
     </ItemGroup>
+    <ItemGroup>
+      <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+    </ItemGroup>
 
 </Project>

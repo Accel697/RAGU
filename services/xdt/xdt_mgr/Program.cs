@@ -2,6 +2,7 @@ using System.Text.Json;
 using xdt_api.Interfaces;
 using xdt_api.Models;
 using xdt_mgr.Services;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
@@ -68,5 +69,8 @@ app.MapPost("/collect", async (IHttpClientFactory httpFactory) =>
 });
 
 app.MapGet("/", () => "xdt_mgr is running. POST /collect to start collection.");
+
+app.UseHttpMetrics();
+app.MapMetrics();
 
 app.Run("http://*:8081");

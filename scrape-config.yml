@@ -1,0 +1,13 @@
+scrape_configs:
+  - job_name: 'grg'
+    static_configs:
+      - targets: ['grg:8000']
+  - job_name: 'web'
+    static_configs:
+      - targets: ['web:8080']
+  - job_name: 'xdt'
+    static_configs:
+      - targets: ['xdt:8081']
+  - job_name: 'knb'
+    static_configs:
+      - targets: ['knb-exporter:9187']

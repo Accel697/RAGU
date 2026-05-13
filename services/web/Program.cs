@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +38,9 @@ app.MapPost("/api/ask", async (HttpRequest request, IHttpClientFactory factory) 
         return Results.StatusCode(500);
     }
 });
+
+app.UseHttpMetrics();
+app.MapMetrics();
 
 app.Run("http://*:8080");
 

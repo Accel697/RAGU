@@ -13,7 +13,7 @@ WORKDIR /app
 
 COPY --from=builder /src/dist/*.whl /tmp/
 RUN uv pip install --system /tmp/*.whl && rm -f /tmp/*.whl
-RUN uv pip install --system fastapi==0.110.2 uvicorn==0.29.0 httpx==0.27.0 psycopg[binary]==3.1.18
+RUN uv pip install --system fastapi==0.110.2 uvicorn==0.29.0 httpx==0.27.0 psycopg[binary]==3.1.18 prometheus_fastapi_instrumentator==5.11.2
 
 COPY services/grg/server.py /app/server.py
 

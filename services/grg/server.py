@@ -3,6 +3,7 @@ import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
+from prometheus_fastapi_instrumentator import Instrumentator
 
 import uvicorn
 import httpx
@@ -27,6 +28,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="RAGU API")
+
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 storage: Optional[AgeGraphStorage] = None
 knowledge_graph: Optional[KnowledgeGraph] = None

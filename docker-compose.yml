@@ -15,6 +15,16 @@ services:
     volumes:
       - age_data:/var/lib/postgresql/data
 
+  knb-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: knb-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USER}:${DB_PASSWORD}@knb:5432/${DB_NAME}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - knb
+
   vllm:
     image: ollama/ollama:latest
     container_name: vllm
@@ -78,8 +88,37 @@ services:
     ports:
       - "8081:8081"
 
+  obv:
+    image: victoriametrics/vmagent:latest
+    container_name: obv
+    command:
+      - "--promscrape.config=/etc/vmagent/prometheus.yml"
+      - "--remoteWrite.url=http://mon:8428/api/v1/write"
+    volumes:
+      - ./prometheus.yml:/etc/vmagent/prometheus.yml
+    depends_on:
+      - knb-exporter
+      - grg
+      - web
+      - xdt
+      - mon
+
+  mon:
+    image: victoriametrics/victoria-metrics:latest
+    container_name: mon
+    command:
+      - "--storageDataPath=/storage"
+      - "--retentionPeriod=3d"
+      - "--promscrape.config=/etc/victoria-metrics/scrape-config.yml"
+    ports:
+      - "8082:8428"
+    volumes:
+      - mon_data:/storage
+      - ./scrape-config.yml:/etc/victoria-metrics/scrape-config.yml
+
 volumes:
   age_data:
   ollama_data:
   ragu_working_dir:
   llm_cache:
+  mon_data:
